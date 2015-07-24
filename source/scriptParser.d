@@ -73,8 +73,7 @@ public class ScriptParser
 
 	private string[] parsePackage()
 	{
-		if(this.getIdentifier != "package") throw new ParseError("Required \"package\"", this.loc);
-		this.dropIdentifier("package");
+		this.correctIdentifier!"package";
 		this.skipIgnores;
 
 		string[] packlist;
@@ -100,8 +99,7 @@ public class ScriptParser
 	{
 		auto enterLocation = this.loc;
 
-		if(this.getIdentifier != "tokenizer") throw new ParseError("Required \"tokenizer\"", this.loc);
-		this.dropIdentifier("tokenizer");
+		this.correctIdentifier!"tokenizer";
 		this.skipIgnores;
 		this.checkCharacter!'{';
 		this.skipIgnores;
@@ -122,7 +120,6 @@ public class ScriptParser
 			{
 				auto patLocation = this.loc;
 				auto skip_pattern = this.parseSkipPattern;
-				writeln("skip_pattern = r\"", skip_pattern, "\"");
 				if(skip_pattern.front == '"' && skip_pattern.back == '"')
 				{
 					skip_patterns ~= new PatternNode(patLocation, skip_pattern[1 .. $ - 1], false);
@@ -148,8 +145,7 @@ public class ScriptParser
 	{
 		auto enterLocation = this.loc;
 
-		if(this.getIdentifier != "parser") throw new ParseError("Required \"parser\"", this.loc);
-		this.dropIdentifier("parser");
+		this.correctIdentifier!"parser";
 		this.skipIgnores;
 		this.checkCharacter!'{';
 		this.skipIgnores;
@@ -170,14 +166,12 @@ public class ScriptParser
 			else if(this.getIdentifier == "header")
 			{
 				auto header_mixins = this.parseHeader;
-				writeln("header mixins: \n", header_mixins);
 				header_parts ~= header_mixins;
 				this.skipIgnores;
 			}
 			else if(this.getIdentifier == "start_rule")
 			{
 				start_rule_name = this.parseStartRule;
-				writeln("parser: start_rule: ", start_rule_name);
 				this.skipIgnores;
 			}
 			else if(this.getIdentifier == "rules")
@@ -195,8 +189,7 @@ public class ScriptParser
 
 	private string parseModuleName()
 	{
-		if(this.getIdentifier != "module") throw new ParseError("Required \"module\"", this.loc);
-		this.dropIdentifier("module");
+		this.correctIdentifier!"module";
 		this.skipIgnores;
 		auto str = this.getIdentifier;
 		if(str.empty) throw new ParseError("Required module name", this.loc);
@@ -205,8 +198,7 @@ public class ScriptParser
 	}
 	private string parseSkipPattern()
 	{
-		if(this.getIdentifier != "skip_pattern") throw new ParseError("Required \"skip_pattern\"", this.loc);
-		this.dropIdentifier("skip_pattern");
+		this.correctIdentifier!"skip_pattern";
 		this.skipSpaces;
 
 		auto str = this.getStringToLF;
@@ -214,8 +206,7 @@ public class ScriptParser
 	}
 	private PatternNode[] enterPatternsBlock()
 	{
-		if(this.getIdentifier != "patterns") throw new ParseError("Required \"Patterns\"", this.loc);
-		this.dropIdentifier("patterns");
+		this.correctIdentifier!"patterns";
 		this.skipIgnores;
 		this.checkCharacter!'{';
 		this.skipIgnores;
@@ -233,12 +224,10 @@ public class ScriptParser
 			auto pattern = this.getStringToLF;
 			if(pattern.front == '"' && pattern.back == '"')
 			{
-				writeln("pattern registered: ", token_name, " = ", pattern, " (exactly match)");
 				nodes ~= new PatternNode(enterLocation, token_name, pattern[1 .. $ - 1], false);
 			}
 			else
 			{
-				writeln("pattern registered: ", token_name, " = r\"", pattern, "\"");
 				nodes ~= new PatternNode(enterLocation, token_name, pattern, true);
 			}
 			this.skipIgnores;
@@ -249,8 +238,7 @@ public class ScriptParser
 	}
 	private string parseHeader()
 	{
-		if(this.getIdentifier != "header") throw new ParseError("Required \"header\"", this.loc);
-		this.dropIdentifier("header");
+		this.correctIdentifier!"header";
 		this.skipIgnores;
 		this.checkCharacter!'{';
 		if(!this.parsingRange.empty && this.parsingRange.front == '\n')
@@ -276,8 +264,7 @@ public class ScriptParser
 	}
 	private string parseStartRule()
 	{
-		if(this.getIdentifier != "start_rule") throw new ParseError("Required \"start_rule\"", this.loc);
-		this.dropIdentifier("start_rule");
+		this.correctIdentifier!"start_rule";
 		this.skipIgnores;
 		auto rule_name = this.getIdentifier;
 		if(rule_name.empty) throw new ParseError("Required rule name", this.loc);
@@ -286,8 +273,7 @@ public class ScriptParser
 	}
 	private RuleNode[] parseRules()
 	{
-		if(this.getIdentifier != "rules") throw new ParseError("Required \"rules\"", this.loc);
-		this.dropIdentifier("rules");
+		this.correctIdentifier!"rules";
 		this.skipIgnores;
 		this.checkCharacter!'{';
 		this.skipIgnores;
@@ -328,7 +314,6 @@ public class ScriptParser
 			this.skipIgnores;
 
 			rules ~= new RuleNode(enterLocation, rule_name, type_name, peg_node);
-			writeln("parser: rule found: ", rule_name, type_name != "auto" ? " with value type " ~ type_name : "");
 		}
 
 		this.checkCharacter!'}';
@@ -368,7 +353,7 @@ public class ScriptParser
 		auto nodes = [this.parsePEGSingle];
 		this.skipIgnores;
 		while(!this.parsingRange.empty &&
-			(this.parsingRange.front == '(' || this.parsingRange.front == '[' || this.parsingRange.front == '{' || !this.getIdentifier.empty))
+			(['(', '[', '{'].any!(a => a == this.parsingRange.front) || !this.getIdentifier.empty))
 		{
 			nodes ~= this.parsePEGSingle;
 			this.skipIgnores;
@@ -530,5 +515,10 @@ public class ScriptParser
 	{
 		if(this.parsingRange.empty || this.parsingRange.front != c) throw new ParseError("Required " ~ c, this.loc);
 		this.parsingRange = this.parsingRange.drop(1);
+	}
+	private void correctIdentifier(string s)()
+	{
+		if(this.getIdentifier != s) throw new ParseError("Required \"" ~ s ~ "\"", this.loc);
+		this.dropIdentifier(s);
 	}
 }
