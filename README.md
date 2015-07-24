@@ -9,4 +9,6 @@ Tokenized-PEG Parser Generator Tool
 ## How to build
 1. ready dub and dmd(v2.067 or later)
 2. clone this repository(git clone https://github.com/Pctg-x8/tpeg)
-3. >$ dub
+
+then
+>$ dub
