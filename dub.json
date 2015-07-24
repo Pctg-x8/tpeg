@@ -1,0 +1,8 @@
+{
+	"name": "tpeg",
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2015, S",
+	"authors": ["S"],
+	"dependencies": {
+	}
+}

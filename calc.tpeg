@@ -1,0 +1,51 @@
+# Tokenized-PEG Parser Generator sample script(calc)
+
+package com.cterm2.tpeg.sample.calc
+
+tokenizer
+{
+    module lexer        # default is "tokenizer", omittable
+
+    skip_pattern    [ \n\t\r]
+    skip_pattern    #[^\n]*\n
+    patterns
+    {
+        INUMBER     [0-9]+
+        FNUMBER     [0-9]*\.[0-9]+
+        PLUS        "+"
+        MINUS       "-"
+        ASTERISK    "*"
+        SLASH       "/"
+        PERCENT     "%"
+        LP          "("
+        RP          ")"
+    }
+}
+
+parser
+{
+    module parser       # default, omittable
+    header
+    {
+import std.stdio, std.conv;
+    }
+
+    start_rule calc
+    rules
+    {
+        calc = (expr:e { std.stdio.writeln("  = ", e); })+;
+        expr<real> = term:lhs
+            ( PLUS term:rhs { lhs = lhs + rhs; }
+            / MINUS term:rhs { lhs = lhs - rhs; })*;
+        term<real> = factor:lhs
+            ( ASTERISK factor:rhs { lhs = lhs * rhs; }
+            / SLASH factor:rhs { lhs = lhs / rhs; }
+            / PERCENT factor:rhs { lhs = lhs % rhs; })*;
+        factor<real> = PLUS factor:t { return t; }
+            / MINUS factor:t { return -t; }
+            / primary;
+        primary<real> = INUMBER:t { return t.to!real; }
+            / FNUMBER:t { return t; }
+            / LP expr:e RP { return e; };
+    }
+}
