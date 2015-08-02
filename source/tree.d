@@ -38,10 +38,13 @@ public class TokenizerNode : NodeBase
 	string module_name;
 	PatternNode[] skip_patterns;
 	PatternNode[] _patterns;
+	string[] pattern_symbols;
 
 	public @property moduleName(){ return this.module_name; }
 	public @property skipPatterns(){ return this.skip_patterns; }
 	public @property patterns(){ return this._patterns; }
+	public @property patternSymbols(){ return this.pattern_symbols; }
+	public @property patternSymbols(string[] ps){ this.pattern_symbols = ps.dup; }
 
 	public this(Location l, string mn, PatternNode[] sp, PatternNode[] pts)
 	{

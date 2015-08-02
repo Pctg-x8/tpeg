@@ -55,6 +55,7 @@ class SymbolFinder : IVisitor
 	{
 		foreach(n; node.skipPatterns) n.accept(this);
 		foreach(n; node.patterns) n.accept(this);
+		if(this.phase == EnumFinderPhase.Prepare) node.patternSymbols = this.patternNames.map!(a => a.str).array;
 	}
 	public override void visit(ParserNode node)
 	{

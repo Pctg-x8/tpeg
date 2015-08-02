@@ -4,6 +4,7 @@ import std.stdio;
 import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.treeDump;
 import com.cterm2.tpeg.symbolFinder;
+import com.cterm2.tpeg.codegen;
 
 void main(string[] args)
 {
@@ -31,4 +32,6 @@ void main(string[] args)
 	}
 	scope auto dumper = new TreeDump();
 	dumper.dump(sourceTree);
+	scope auto codeGenerator = new CodeGenerator();
+	codeGenerator.entry(sourceTree);
 }
