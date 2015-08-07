@@ -1,6 +1,6 @@
 module com.cterm2.tpeg.tree;
 
-import std.string, std.range, std.array;
+import std.string, std.range, std.array, std.algorithm;
 import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.visitor;
 
@@ -131,14 +131,17 @@ public class RuleNode : NodeBase
 public abstract class PEGNodeBase : NodeBase
 {
 	public this(Location l){ super(l); }
+	public abstract @property string ruleIdentifier();
 
 	mixin DefaultAcceptorImpl;
 }
 public class PEGSwitchingNode : PEGNodeBase
 {
 	PEGNodeBase[] _nodes;
+	public int complexRuleOrdinal = -1;
 
 	public @property nodes(){ return this._nodes; }
+	public override @property string ruleIdentifier(){ return "<Switch:"~this.nodes.map!(a => a.ruleIdentifier).join(",")~">"; }
 
 	public this(PEGNodeBase[] nds)
 	{
@@ -151,8 +154,10 @@ public class PEGSwitchingNode : PEGNodeBase
 public class PEGSequentialNode : PEGNodeBase
 {
 	PEGNodeBase[] _nodes;
+	public int complexRuleOrdinal = -1;
 
 	public @property nodes(){ return this._nodes; }
+	public override @property string ruleIdentifier(){ return "<Sequential:"~this.nodes.map!(a => a.ruleIdentifier).join(",")~">"; }
 
 	public this(PEGNodeBase[] nds)
 	{
@@ -166,9 +171,11 @@ public class PEGLoopQualifiedNode : PEGNodeBase
 {
 	PEGNodeBase _inner;
 	bool is_required_least_one;
+	public int complexRuleOrdinal = -1;
 
 	public @property inner(){ return this._inner; }
 	public @property isRequiredLeastOne(){ return this.is_required_least_one; }
+	public override @property string ruleIdentifier(){ return "<LoopQualified:"~this.isRequiredLeastOne~":"~this.inner.ruleIdentifier~">"; }
 
 	public this(PEGNodeBase node, bool irlo)
 	{
@@ -182,8 +189,10 @@ public class PEGLoopQualifiedNode : PEGNodeBase
 public class PEGSkippableNode : PEGNodeBase
 {
 	PEGNodeBase _inner;
+	public int complexRuleOrdinal = -1;
 
 	public @property inner(){ return this._inner; }
+	public override @property string ruleIdentifier(){ return "<Skippable:"~this.inner.ruleIdentifier~">"; }
 
 	public this(Location l, PEGNodeBase node)
 	{
@@ -198,6 +207,7 @@ public class PEGActionNode : PEGNodeBase
 	string action_string;
 
 	public @property actionString(){ return this.action_string; }
+	public override @property string ruleIdentifier(){ return "<Action:"~this.actionString~">"; }
 
 	public this(Location l, string as)
 	{
@@ -217,6 +227,7 @@ public class PEGElementNode : PEGNodeBase
 	public @property binderName(){ return this.binder_name; }
 	public @property isBinded(){ return !this.binder_name.empty; }
 	public @property isRule(){ return this.is_rule; }
+	public override @property string ruleIdentifier(){ return "<"~this.isBinded~":"~this.isRule~":"~this.elementName~":"~this.binderName~">"; }
 
 	public void toRuleElement(){ this.is_rule = true; }
 	public void toPatternElement(){ this.is_rule = false; }

@@ -241,6 +241,7 @@ public class ScriptParser
 		this.correctIdentifier!"header";
 		this.skipIgnores;
 		this.checkCharacter!'{';
+		if(!this.parsingRange.empty && this.parsingRange.front == '\r') this.parsingRange = this.parsingRange.drop(1);
 		if(!this.parsingRange.empty && this.parsingRange.front == '\n')
 		{
 			this.parsingRange = this.parsingRange.drop(1);
@@ -254,7 +255,7 @@ public class ScriptParser
 			{
 				this.loc.line++;
 			}
-			mixins ~= this.parsingRange.front;
+			if(this.parsingRange.front != '\r') mixins ~= this.parsingRange.front;
 			this.parsingRange = this.parsingRange.drop(1);
 		}
 		while(!mixins.empty && [' ', '\t', '\r', '\n'].any!(a => a == mixins.back)) mixins.popBack;
@@ -509,6 +510,7 @@ public class ScriptParser
 			st ~= this.parsingRange.front;
 			this.parsingRange = this.parsingRange.drop(1);
 		}
+		if(st.back == '\r') return st[0 .. $ - 1];
 		return st;
 	}
 	private void checkCharacter(char c)()
