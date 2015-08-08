@@ -1,6 +1,6 @@
 module com.cterm2.tpeg.tree;
 
-import std.string, std.range, std.array, std.algorithm;
+import std.string, std.range, std.array, std.algorithm, std.conv;
 import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.visitor;
 
@@ -141,7 +141,7 @@ public class PEGSwitchingNode : PEGNodeBase
 	public int complexRuleOrdinal = -1;
 
 	public @property nodes(){ return this._nodes; }
-	public override @property string ruleIdentifier(){ return "<Switch:"~this.nodes.map!(a => a.ruleIdentifier).join(",")~">"; }
+	public override @property string ruleIdentifier(){ return "<Switch:"~this.nodes.map!(a => a.ruleIdentifier).filter!(a => a !is null).join(",")~">"; }
 
 	public this(PEGNodeBase[] nds)
 	{
@@ -157,7 +157,7 @@ public class PEGSequentialNode : PEGNodeBase
 	public int complexRuleOrdinal = -1;
 
 	public @property nodes(){ return this._nodes; }
-	public override @property string ruleIdentifier(){ return "<Sequential:"~this.nodes.map!(a => a.ruleIdentifier).join(",")~">"; }
+	public override @property string ruleIdentifier(){ return "<Sequential:"~this.nodes.map!(a => a.ruleIdentifier).filter!(a => a !is null).join(",")~">"; }
 
 	public this(PEGNodeBase[] nds)
 	{
@@ -175,7 +175,7 @@ public class PEGLoopQualifiedNode : PEGNodeBase
 
 	public @property inner(){ return this._inner; }
 	public @property isRequiredLeastOne(){ return this.is_required_least_one; }
-	public override @property string ruleIdentifier(){ return "<LoopQualified:"~this.isRequiredLeastOne~":"~this.inner.ruleIdentifier~">"; }
+	public override @property string ruleIdentifier(){ return "<LoopQualified:"~this.isRequiredLeastOne.to!string~":"~this.inner.ruleIdentifier~">"; }
 
 	public this(PEGNodeBase node, bool irlo)
 	{
@@ -207,7 +207,7 @@ public class PEGActionNode : PEGNodeBase
 	string action_string;
 
 	public @property actionString(){ return this.action_string; }
-	public override @property string ruleIdentifier(){ return "<Action:"~this.actionString~">"; }
+	public override @property string ruleIdentifier(){ return null; }
 
 	public this(Location l, string as)
 	{
@@ -227,7 +227,7 @@ public class PEGElementNode : PEGNodeBase
 	public @property binderName(){ return this.binder_name; }
 	public @property isBinded(){ return !this.binder_name.empty; }
 	public @property isRule(){ return this.is_rule; }
-	public override @property string ruleIdentifier(){ return "<"~this.isBinded~":"~this.isRule~":"~this.elementName~":"~this.binderName~">"; }
+	public override @property string ruleIdentifier(){ return "<"~this.isBinded.to!string~":"~this.isRule.to!string~":"~this.elementName~":"~this.binderName~">"; }
 
 	public void toRuleElement(){ this.is_rule = true; }
 	public void toPatternElement(){ this.is_rule = false; }

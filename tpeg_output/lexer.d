@@ -7,7 +7,7 @@ import std.array, std.range, std.exception;
 public enum EnumTokenType
 {
 	__SKIP_PATTERN__, INUMBER, FNUMBER, PLUS, MINUS, ASTERISK, SLASH, PERCENT, LP, 
-	RP
+	RP, __INPUT_END__
 }
 public struct Location
 {
@@ -34,6 +34,11 @@ public class Token
 	{
 		this(l, t);
 		this._text = tx;
+	}
+
+	public @property dup()
+	{
+		return new Token(this.location, this.type, this.text);
 	}
 }
 public class TokenizeError : Exception
@@ -111,5 +116,6 @@ public auto tokenizeStr(string fileData)
 		parsingRange = parsingRange.drop(longest_match.length);
 	}
 
+	tokenList ~= new Token(loc, EnumTokenType.__INPUT_END__, "[EOI]");
 	return tokenList.dup;
 }

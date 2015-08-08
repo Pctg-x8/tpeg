@@ -54,6 +54,11 @@ public class Token
 		this(l, t);
 		this._text = tx;
 	}
+
+	public @property dup()
+	{
+		return new Token(this.location, this.type, this.text);
+	}
 }
 public class TokenizeError : Exception
 {
@@ -93,7 +98,7 @@ import std.array, std.range, std.exception;
 	f.writeln(q{public enum EnumTokenType});
 	f.writeln("{");
 	string line_temp = "__SKIP_PATTERN__, ";
-	foreach(t; patternSymbols)
+	foreach(t; patternSymbols ~ "__INPUT_END__")
 	{
 		if(line_temp.length >= 80-4)
 		{
@@ -114,32 +119,66 @@ void generateElementParser(File f) in { assert(f.isOpen); } body
 {
 	// generate template class in Grammar class
 
-	f.writeln(q{	private class ElementParser(EnumTokenType ParseE)});
+	f.writeln(q{	private static class ElementParser(EnumTokenType ParseE)});
 	f.writeln( "	{");
-	f.writeln(q{		protected alias ResultType = Result!string;});
+	f.writeln(q{		protected alias ResultType = Result!TokenTree;});
 	f.writeln(q{		private static ResultType[TokenIterator] _memo;});
 	f.writeln();
 	f.writeln(q{		public static auto parse(TokenIterator r)});
 	f.writeln( "		{");
-	f.writeln(q{			if((r in this._memo) is null)});
+	f.writeln(q{			if((r in _memo) is null)});
 	f.writeln( "			{");
 	f.writeln( "				// register new result");
-	f.writeln(q{				this._memo[r] = this.innerParse(r);});
+	f.writeln(q{				_memo[r] = innerParse(r);});
 	f.writeln( "			}");
 	f.writeln();
-	f.writeln(q{			return this._memo[r];});
+	f.writeln(q{			return _memo[r];});
 	f.writeln( "		}");
 	f.writeln();
 	f.writeln(q{		private static auto innerParse(TokenIterator r)});
 	f.writeln( "		{");
 	f.writeln(q{			if(r.current.type == ParseE)});
 	f.writeln( "			{");
-	f.writeln(q{				return ResultType(true, TokenIterator(r.pos + 1, r.token), r.current.text);});
+	f.writeln(q{				return ResultType(true, TokenIterator(r.pos + 1, r.token), TokenIterator(r.pos + 1, r.token), new TokenTree(r.current));});
 	f.writeln( "			}");
 	f.writeln(q{			else});
 	f.writeln( "			{");
-	f.writeln(q{				return ResultType(false, r);});
+	f.writeln(q{				return ResultType(false, r, TokenIterator(r.pos + 1, r.token));});
 	f.writeln( "			}");
+	f.writeln( "		}");
+	f.writeln( "	}");
+}
+void generateRuleParser(File f) in { assert(f.isOpen); } body
+{
+	f.writeln(q{	private static class RuleParser(string Name, alias PrimaryParser)});
+	f.writeln( "	{");
+	f.writeln(q{		private alias ResultType = Result!(RuleTree!Name);});
+	f.writeln(q{		private static ResultType[TokenIterator] _memo;});
+	f.writeln();
+	f.writeln(q{		public static ResultType parse(TokenIterator r)});
+	f.writeln( "		{");
+	f.writeln(q{			if((r in _memo) is null)});
+	f.writeln( "			{");
+	f.writeln( "				// register new result");
+	f.writeln(q{				auto res = PrimaryParser.parse(r);});
+	f.writeln(q{				if(res.succeeded) _memo[r] = ResultType(true, res.iterNext, res.iterError, new RuleTree!Name(res.value));});
+	f.writeln(q{				else _memo[r] = ResultType(false, r, res.iterError);});
+	f.writeln( "			}");
+	f.writeln();
+	f.writeln(q{			return _memo[r];});
+	f.writeln( "		}");
+	f.writeln( "	}");
+}
+void generatePartialParserHeader(File f) in { assert(f.isOpen); } body
+{
+	f.writeln(q{	private template PartialParserHeader(alias InternalParserMethod)});
+	f.writeln( "	{");
+	f.writeln(q{		private static ResultType[TokenIterator] _memo;});
+	f.writeln();
+	f.writeln(q{		public static ResultType parse(TokenIterator r)});
+	f.writeln( "		{");
+	f.writeln(q{			if((r in _memo) is null) _memo[r] = InternalParserMethod(r);});
+	f.writeln(q{			return _memo[r];});
 	f.writeln( "		}");
 	f.writeln( "	}");
 }
@@ -147,7 +186,7 @@ void generateElementParser(File f) in { assert(f.isOpen); } body
 enum EnumCurrentState
 {
 	None, GeneratePatternCtRegex, GeneratePatternMatchList,
-	GenerateElementParsingStructures, GenerateActionInferer
+	GenerateElementParsingStructures, GenerateParserUsingCode, GenerateParserClassName
 }
 
 class CodeGenerator : IVisitor
@@ -176,6 +215,24 @@ class CodeGenerator : IVisitor
 		}
 
 		node.accept(this);
+	}
+
+	private void acquireRuleOrdinal(NodeT : PEGNodeBase)(NodeT node) if(__traits(hasMember, NodeT, "complexRuleOrdinal"))
+	{
+		if(node.complexRuleOrdinal < 0)
+		{
+			auto ruleIdentifier = node.ruleIdentifier;
+			if(ruleIdentifier in this.complexRuleIdentifierTable)
+			{
+				node.complexRuleOrdinal = this.complexRuleIdentifierTable[ruleIdentifier];
+			}
+			else
+			{
+				this.complexRuleIdentifierTable[ruleIdentifier] = this.complexRuleCount;
+				node.complexRuleOrdinal = this.complexRuleCount;
+				this.complexRuleCount++;
+			}
+		}
 	}
 
 	// IVisitor //
@@ -239,7 +296,9 @@ class CodeGenerator : IVisitor
 		loc.col += lines[$ - 1].length;
 		parsingRange = parsingRange.drop(longest_match.length);});
 		this.currentFile.writeln("\t", "}");
-		this.currentFile.writeln("\n", "\t", q{return tokenList.dup;});
+		this.currentFile.writeln();
+		this.currentFile.writeln("\t", q{tokenList ~= new Token(loc, EnumTokenType.__INPUT_END__, "[EOI]");});
+		this.currentFile.writeln("\t", q{return tokenList.dup;});
 		this.currentFile.writeln("}");
 		this.currentFile.close();
 	}
@@ -250,7 +309,7 @@ class CodeGenerator : IVisitor
 		this.currentFile.writeln("module ", (this.packageName ~ node.moduleName).join("."), ";");
 		this.currentFile.writeln();
 		this.currentFile.writeln("import ", (this.packageName ~ this.lexerModuleName).join("."), ";");
-		this.currentFile.writeln("import std.traits;");
+		this.currentFile.writeln("import std.traits, std.algorithm, std.range, std.array;");
 		this.currentFile.writeln();
 		if(node.headerPart !is null)
 		{
@@ -265,6 +324,7 @@ class CodeGenerator : IVisitor
 			writeln(q{	size_t pos;});
 			writeln(q{	Token[] token;});
 			writeln();
+			writeln(q{	@property current(){ return pos >= token.length ? token[$ - 1] : token[pos]; }});
 			writeln(q{	size_t toHash() const @safe pure nothrow { return pos; }});
 			writeln(q{	bool opEquals(ref const TokenIterator iter) const @safe pure nothrow});
 			writeln("	{");
@@ -272,13 +332,62 @@ class CodeGenerator : IVisitor
 			writeln("	}");
 			writeln("}");
 			writeln();
-			writeln(q{struct Result(ValueType)});
+			writeln(q{struct Result(ValueType : ISyntaxTree)});
 			writeln("{");
 			writeln(q{	bool succeeded;});
-			writeln(q{	TokeIterator iterNext;});
-			writeln(q{	static if(!is(ValueType == void)) ValueType value;});
+			writeln(q{	TokenIterator iterNext;});
+			writeln(q{	TokenIterator iterError;});
+			writeln(q{	ValueType value;});
 			writeln();
 			writeln(q{	@property bool failed(){ return !succeeded; }});
+			writeln(q{	auto opAssign(T : ISyntaxTree)(Result!T val)});
+			writeln("	{");
+			writeln(q{		this.succeeded = val.succeeded;});
+			writeln(q{		this.iterNext = val.iterNext;});
+			writeln(q{		this.iterError = val.iterError;});
+			writeln(q{		this.value = val.value;});
+			writeln(q{		return this;});
+			writeln("	}");
+			writeln("}");
+			writeln();
+			writeln(q{public interface ISyntaxTree});
+			writeln("{");
+			writeln(q{	public @property Location location();});
+			writeln("}");
+			writeln(q{public class RuleTree(string RuleName) : ISyntaxTree});
+			writeln("{");
+			writeln(q{	ISyntaxTree _child;});
+			writeln();
+			writeln(q{	public override @property Location location(){ return this._child.location; }});
+			writeln(q{	public @property child(){ return this._child; }});
+			writeln();
+			writeln(q{	public this(ISyntaxTree c)});
+			writeln("	{");
+			writeln(q{		this._child = c;});
+			writeln("	}");
+			writeln("}");
+			writeln(q{public class PartialTree : ISyntaxTree});
+			writeln("{");
+			writeln(q{	ISyntaxTree[] children;});
+			writeln();
+			writeln(q{	public override @property Location location(){ return this.children.front.location; }});
+			writeln();
+			writeln(q{	public this(ISyntaxTree[] trees)});
+			writeln("	{");
+			writeln(q{		this.children = trees;});
+			writeln("	}");
+			writeln("}");
+			writeln(q{public class TokenTree : ISyntaxTree});
+			writeln("{");
+			writeln(q{	Token _token;});
+			writeln();
+			writeln(q{	public override @property Location location(){ return this.token.location; }});
+			writeln(q{	public @property token(){ return this._token; }});
+			writeln();
+			writeln(q{	public this(Token t)});
+			writeln("	{");
+			writeln(q{		this._token = t.dup;});
+			writeln("	}");
 			writeln("}");
 			writeln();
 		}
@@ -287,6 +396,16 @@ class CodeGenerator : IVisitor
 		foreach(n; node.rules) n.accept(this);
 		this.currentState = EnumCurrentState.None;
 		foreach(n; node.rules) n.accept(this);
+		this.currentFile.writeln("}");
+		this.currentFile.writeln();
+		this.currentFile.writeln(q{public auto parse(Token[] tokenList)});
+		this.currentFile.writeln("{");
+		this.currentFile.writeln(q{	auto res = Grammar.}, node.startRuleName, q{.parse(TokenIterator(0, tokenList));});
+		this.currentFile.writeln(q{	if(res.iterNext.current.type != EnumTokenType.__INPUT_END__)});
+		this.currentFile.writeln("	{");
+		this.currentFile.writeln(q{		return Grammar.}, node.startRuleName, q{.ResultType(false, res.iterNext, res.iterError);});
+		this.currentFile.writeln("	}");
+		this.currentFile.writeln(q{	return res;});
 		this.currentFile.writeln("}");
 		this.currentFile.close();
 	}
@@ -353,125 +472,207 @@ class CodeGenerator : IVisitor
 			node.ruleBody.accept(this);
 			break;
 		case EnumCurrentState.None:
-			this.currentFile.writeln(q{	public static class }, node.ruleName);
-			this.currentFile.writeln("	{");
-
-			if(node.typeName == "auto")
+			if(!this.parseClassDefinedList.any!(a => a == "RuleParser"))
 			{
-				// inferencing required
-				with(this.currentFile)
-				{
-					writeln(q{		private alias ValueType = ReturnType!__vtype_inferer__;});
-					writeln(q{		private auto __vtype_inferer__()});
-					writeln("		{");
-					writeln("			// actions...");
-					this.currentState = EnumCurrentState.GenerateActionInferer;
-					node.ruleBody.accept(this);
-					this.currentState = EnumCurrentState.None;
-					writeln("		}");
-					writeln();
-					writeln(q{		private alias ResultType = Result!ValueType;});
-					writeln(q{		private ResultType[TokenIterator] _memo;});
-					writeln();
-					writeln(q{		public auto parse(TokenIterator r)});
-					writeln("		{");
-					writeln(q{			if((r in this._memo) is null)});
-					writeln("			{");
-					writeln("				// register new result");
-					writeln();
-					writeln(q{				bool succeeded = false;});
-					writeln(q{				static if(is(ValueType == void))});
-					writeln("				{");
-					writeln(q{					this.innerParse(r, succeeded);});
-					writeln(q{					this._memo[r] = ResultType(succeeded);});
-					writeln("				}");
-					writeln(q{				else});
-					writeln("				{");
-					writeln(q{					auto result = this.innerParse(r, succeeded);});
-					writeln(q{					this._memo[r] = ResultType(succeeded, result);});
-					writeln("				}");
-					writeln("			}");
-					writeln();
-					writeln(q{			return this._memo[r];});
-					writeln("		}");
-					writeln();
-					writeln(q{		private auto innerParse(TokenIterator r, out bool succeeded)});
-					writeln("		{");
-					writeln(q{			succeeded = true;});
-					writeln();
-					writeln("			// parsing rule code here");
-					node.ruleBody.accept(this);
-					writeln(q{			static if(!is(ValueType == void)) return ValueType();});
-					writeln("		}");
-				}
+				this.parseClassDefinedList ~= "RuleParser";
+				this.currentFile.generateRuleParser();
 			}
-			else
-			{
-				// restricted type
-				with(this.currentFile)
-				{
-					auto tname = node.typeName.any!(a => a == ' ') ? "(" ~ node.typeName ~ ")" : node.typeName;
-					writeln(q{		private alias ResultType = Result!}, tname, q{;});
-					writeln(q{		private ResultType[TokenIterator] _memo;});
-					writeln();
-					writeln(q{		public auto parse(TokenIterator r)});
-					writeln("		{");
-					writeln(q{			if((r in this._memo) is null)});
-					writeln("			{");
-					writeln("				// register new result");
-					writeln();
-					writeln(q{				bool succeeded = false;});
-					if(node.typeName == "void")
-					{
-						writeln(q{				this.innerParse(r, succeeded)});
-						writeln(q{				this._memo[r] = ResultType(succeeded);});
-					}
-					else
-					{
-						writeln(q{				auto result = this.innerParse(r, succeeded);});
-						writeln(q{				this._memo[r] = ResultType(succeeded, result);});
-					}
-					writeln("			}");
-					writeln();
-					writeln(q{			return this._memo[r];});
-					writeln("		}");
-					writeln();
-					writeln(q{		private auto innerParse(TokenIterator r, out bool succeeded)});
-					writeln("		{");
-					writeln(q{			succeeded = true;});
-					writeln();
-					writeln("			// parsing rule code here");
-					node.ruleBody.accept(this);
-					writeln(q{			return }, node.typeName, q{();});
-					writeln("		}");
-				}
-			}
-
-			this.currentFile.writeln("	}");
+			this.currentFile.write(q{	public alias }, node.ruleName, q{ = RuleParser!(}, `"`, node.ruleName, `"`, q{, });
+			this.currentState = EnumCurrentState.GenerateParserClassName;
+			node.ruleBody.accept(this);
+			this.currentState = EnumCurrentState.None;
+			this.currentFile.writeln(q{);});
 			break;
 		default: break;
 		}
 	}
 	public void visit(PEGSwitchingNode node)
 	{
-		this.currentFile.writeln("			// PEGSwitchingNode id=", node.ruleIdentifier);
-		foreach(n; node.nodes)
+		switch(this.currentState)
 		{
-			n.accept(this);
+		case EnumCurrentState.GenerateElementParsingStructures:
+			foreach(n; node.nodes)
+			{
+				n.accept(this);
+			}
+
+			this.acquireRuleOrdinal(node);
+			if(!this.parseClassDefinedList.any!(a => a == "PartialParserHeader"))
+			{
+				this.parseClassDefinedList ~= "PartialParserHeader";
+				this.currentFile.generatePartialParserHeader();
+			}
+			auto className = "ComplexParser_Switching" ~ node.complexRuleOrdinal.to!string;
+			if(!this.parseClassDefinedList.any!(a => a == className))
+			{
+				this.parseClassDefinedList ~= className;
+				with(this.currentFile)
+				{
+					writeln(q{	private static class }, className);
+					writeln("	{");
+					writeln("		// id=", node.ruleIdentifier);
+					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		mixin PartialParserHeader!innerParse;});
+					writeln();
+					writeln(q{		private static ResultType innerParse(TokenIterator r)});
+					writeln("		{");
+					writeln(q{			Result!ISyntaxTree resTemp;});
+					writeln(q{			TokenIterator[] errors;});
+					this.currentState = EnumCurrentState.GenerateParserUsingCode;
+					foreach(n; node.nodes)
+					{
+						if(typeid(n) == typeid(PEGActionNode)) continue;
+						writeln();
+						  write(q{			resTemp = }); n.accept(this); writeln(q{;});
+						writeln(q{			if(resTemp.succeeded)});
+						writeln("			{");
+						writeln(q{				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTree([resTemp.value]));});
+						writeln("			}");
+						writeln(q{			errors ~= resTemp.iterError;});
+					}
+					writeln(q{			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));});
+					this.currentState = EnumCurrentState.GenerateElementParsingStructures;
+					writeln("		}");
+					writeln("	}");
+				}
+			}
+			break;
+		case EnumCurrentState.GenerateParserUsingCode:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Switching", node.complexRuleOrdinal, q{.parse(r)});
+			break;
+		case EnumCurrentState.GenerateParserClassName:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Switching", node.complexRuleOrdinal);
+			break;
+		default: break;
 		}
 	}
 	public void visit(PEGSequentialNode node)
 	{
-		this.currentFile.writeln("			// PEGSequentialNode id=", node.ruleIdentifier);
-		foreach(n; node.nodes)
+		switch(this.currentState)
 		{
-			n.accept(this);
+		case EnumCurrentState.GenerateElementParsingStructures:
+			foreach(n; node.nodes)
+			{
+				n.accept(this);
+			}
+
+			this.acquireRuleOrdinal(node);
+			if(!this.parseClassDefinedList.any!(a => a == "PartialParserHeader"))
+			{
+				this.parseClassDefinedList ~= "PartialParserHeader";
+				this.currentFile.generatePartialParserHeader();
+			}
+			auto className = "ComplexParser_Sequential" ~ node.complexRuleOrdinal.to!string;
+			if(!this.parseClassDefinedList.any!(a => a == className))
+			{
+				this.parseClassDefinedList ~= className;
+				with(this.currentFile)
+				{
+					writeln(q{	private static class }, className);
+					writeln("	{");
+					writeln("		// id=", node.ruleIdentifier);
+					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		mixin PartialParserHeader!innerParse;});
+					writeln();
+					writeln(q{		private static ResultType innerParse(TokenIterator r)});
+					writeln("		{");
+					writeln(q{			Result!ISyntaxTree resTemp;});
+					writeln(q{			ISyntaxTree[] treeList;});
+					this.currentState = EnumCurrentState.GenerateParserUsingCode;
+					foreach(n; node.nodes)
+					{
+						if(typeid(n) == typeid(PEGActionNode)) continue;
+						writeln();
+						  write(q{			resTemp = }); n.accept(this); writeln(q{;});
+						writeln(q{			if(resTemp.failed)});
+						writeln("			{");
+						writeln(q{				return ResultType(false, r, resTemp.iterError);});
+						writeln("			}");
+						writeln(q{			treeList ~= resTemp.value;});
+						writeln(q{			r = resTemp.iterNext;});
+					}
+					writeln(q{			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTree(treeList));});
+					this.currentState = EnumCurrentState.GenerateElementParsingStructures;
+					writeln("		}");
+					writeln("	}");
+				}
+			}
+			break;
+		case EnumCurrentState.GenerateParserUsingCode:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Sequential", node.complexRuleOrdinal, q{.parse(r)});
+			break;
+		case EnumCurrentState.GenerateParserClassName:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Sequential", node.complexRuleOrdinal);
+			break;
+		default: break;
 		}
 	}
 	public void visit(PEGLoopQualifiedNode node)
 	{
-		this.currentFile.writeln("			// PEGLoopQualifiedNode: id=", node.ruleIdentifier);
-		node.inner.accept(this);
+		switch(this.currentState)
+		{
+		case EnumCurrentState.GenerateElementParsingStructures:
+			node.inner.accept(this);
+
+			this.acquireRuleOrdinal(node);
+			if(!this.parseClassDefinedList.any!(a => a == "PartialParserHeader"))
+			{
+				this.parseClassDefinedList ~= "PartialParserHeader";
+				this.currentFile.generatePartialParserHeader();
+			}
+			auto className = "ComplexParser_LoopQualified" ~ node.complexRuleOrdinal.to!string;
+			if(!this.parseClassDefinedList.any!(a => a == className))
+			{
+				this.parseClassDefinedList ~= className;
+				with(this.currentFile)
+				{
+					writeln(q{	private static class }, className);
+					writeln("	{");
+					writeln("		// id=", node.ruleIdentifier);
+					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		mixin PartialParserHeader!innerParse;});
+					writeln();
+					writeln(q{		private static ResultType innerParse(TokenIterator r)});
+					writeln("		{");
+					this.currentState = EnumCurrentState.GenerateParserUsingCode;
+					writeln(q{			ISyntaxTree[] treeList;});
+					writeln(q{			TokenIterator lastError;});
+					writeln(q{			while(true)});
+					writeln("			{");
+					  write(q{				auto result = }); node.inner.accept(this); writeln(q{;});
+					writeln(q{				lastError = result.iterError;});
+					writeln(q{				if(result.failed) break;});
+					writeln(q{				treeList ~= result.value;});
+					writeln(q{				r = result.iterNext;});
+					writeln("			}");
+					if(!node.isRequiredLeastOne)
+					{
+						writeln(q{			return ResultType(true, r, lastError, new PartialTree(treeList));});
+					}
+					else
+					{
+						writeln(q{			return ResultType(!treeList.empty, r, lastError, new PartialTree(treeList));});
+					}
+					this.currentState = EnumCurrentState.GenerateElementParsingStructures;
+					writeln("		}");
+					writeln("	}");
+				}
+			}
+			break;
+		case EnumCurrentState.GenerateParserUsingCode:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_LoopQualified", node.complexRuleOrdinal, q{.parse(r)});
+			break;
+		case EnumCurrentState.GenerateParserClassName:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_LoopQualified", node.complexRuleOrdinal);
+			break;
+		default: break;
+		}
 	}
 	public void visit(PEGSkippableNode node)
 	{
@@ -480,28 +681,49 @@ class CodeGenerator : IVisitor
 		case EnumCurrentState.GenerateElementParsingStructures:
 			node.inner.accept(this);
 
-			if(node.complexRuleOrdinal < 0)
+			this.acquireRuleOrdinal(node);
+			if(!this.parseClassDefinedList.any!(a => a == "PartialParserHeader"))
 			{
-				auto ruleIdentifier = node.ruleIdentifier;
-				if(ruleIdentifier in this.complexRuleIdentifierTable)
+				this.parseClassDefinedList ~= "PartialParserHeader";
+				this.currentFile.generatePartialParserHeader();
+			}
+			auto className = "ComplexParser_Skippable" ~ node.complexRuleOrdinal.to!string;
+			if(!this.parseClassDefinedList.any!(a => a == className))
+			{
+				this.parseClassDefinedList ~= className;
+				with(this.currentFile)
 				{
-					node.complexRuleOrdinal = this.complexRuleIdentifierTable[ruleIdentifier];
-				}
-				else
-				{
-					this.complexRuleIdentifierTable[ruleIdentifier] = this.complexRuleCount;
-					node.complexRuleOrdinal = this.complexRuleCount;
-					auto className = "ComplexParser_Skippable" ~ this.complexRuleCount.to!string;
-					this.complexRuleCount++;
-					if(typeid(node.inner) == typeid(PEGElementNode))
-					{
-						if(!(cast(PEGElementNode)node.inner).isRule)
-						{
-							// use element parser
-						}
-					}
+					writeln(q{	private static class }, className);
+					writeln("	{");
+					writeln("		// id=", node.ruleIdentifier);
+					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		mixin PartialParserHeader!innerParse;});
+					writeln();
+					writeln(q{		public static ResultType innerParse(TokenIterator r)});
+					writeln("		{");
+					this.currentState = EnumCurrentState.GenerateParserUsingCode;
+					  write(q{			auto result = });node.inner.accept(this);writeln(q{;});
+					writeln(q{			if(result.failed)});
+					writeln("			{");
+					writeln(q{				return ResultType(true, r, r, new PartialTree())});
+					writeln("			}");
+					writeln(q{			else});
+					writeln("			{");
+					writeln(q{				return result;});
+					writeln("			}");
+					this.currentState = EnumCurrentState.GenerateElementParsingStructures;
+					writeln("		}");
+					writeln("	}");
 				}
 			}
+			break;
+		case EnumCurrentState.GenerateParserUsingCode:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Skippable", node.complexRuleOrdinal, q{.parse(r)});
+			break;
+		case EnumCurrentState.GenerateParserClassName:
+			this.acquireRuleOrdinal(node);
+			this.currentFile.write("ComplexParser_Skippable", node.complexRuleOrdinal);
 			break;
 		default: break;
 		}
@@ -510,9 +732,6 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
-		case EnumCurrentState.GenerateActionInferer:
-			this.currentFile.writeln("			{", node.actionString, "}");
-			break;
 		default: break;
 		}
 	}
@@ -538,6 +757,14 @@ class CodeGenerator : IVisitor
 					this.currentFile.writeln(q{	private alias }, className, q{ = ElementParser!(EnumTokenType.}, node.elementName, q{);});
 				}
 			}
+			break;
+		case EnumCurrentState.GenerateParserUsingCode:
+			if(node.isRule) this.currentFile.write(node.elementName, ".parse(r)");
+			else this.currentFile.write(q{ElementParser_}, node.elementName, q{.parse(r)});
+			break;
+		case EnumCurrentState.GenerateParserClassName:
+			if(node.isRule) this.currentFile.write(node.elementName);
+			else this.currentFile.write(q{ElementParser_}, node.elementName);
 			break;
 		default: break;
 		}
