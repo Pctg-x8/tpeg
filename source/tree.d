@@ -207,7 +207,7 @@ public class PEGActionNode : PEGNodeBase
 	string action_string;
 
 	public @property actionString(){ return this.action_string; }
-	public override @property string ruleIdentifier(){ return null; }
+	public override @property string ruleIdentifier(){ return "<Action:"~this.actionString~">"; }
 
 	public this(Location l, string as)
 	{

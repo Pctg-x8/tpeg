@@ -40,6 +40,7 @@ struct Result(ValueType : ISyntaxTree)
 public interface ISyntaxTree
 {
 	public @property Location location();
+	public void startReducing();
 }
 public class RuleTree(string RuleName) : ISyntaxTree
 {
@@ -48,16 +49,20 @@ public class RuleTree(string RuleName) : ISyntaxTree
 	public override @property Location location(){ return this._child.location; }
 	public @property child(){ return this._child; }
 
+	public override void startReducing(){ TreeReduce.reduce(this); }
+
 	public this(ISyntaxTree c)
 	{
 		this._child = c;
 	}
 }
-public class PartialTree : ISyntaxTree
+public class PartialTree(uint PartialOrdinal) : ISyntaxTree
 {
 	ISyntaxTree[] children;
 
 	public override @property Location location(){ return this.children.front.location; }
+
+	public override void startReducing(){ TreeReduce.reduce(this); }
 
 	public this(ISyntaxTree[] trees)
 	{
@@ -70,6 +75,8 @@ public class TokenTree : ISyntaxTree
 
 	public override @property Location location(){ return this.token.location; }
 	public @property token(){ return this._token; }
+
+	public override void startReducing(){ TreeReduce.reduce(this); }
 
 	public this(Token t)
 	{
@@ -91,8 +98,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential0
 	{
-		// id=<Sequential:<true:true:expr:e>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<true:true:expr:e>,<Action: std.stdio.writeln("  = ", e); >>
+		private alias ResultType = Result!(PartialTree!0);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -112,8 +119,8 @@ public class Grammar
 	}
 	private static class ComplexParser_LoopQualified1
 	{
-		// id=<LoopQualified:true:<Sequential:<true:true:expr:e>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<LoopQualified:true:<Sequential:<true:true:expr:e>,<Action: std.stdio.writeln("  = ", e); >>>
+		private alias ResultType = Result!(PartialTree!1);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -162,8 +169,8 @@ public class Grammar
 	private alias ElementParser_PLUS = ElementParser!(EnumTokenType.PLUS);
 	private static class ComplexParser_Sequential2
 	{
-		// id=<Sequential:<false:false:PLUS:>,<true:true:term:rhs>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:PLUS:>,<true:true:term:rhs>,<Action: lhs = lhs + rhs; >>
+		private alias ResultType = Result!(PartialTree!2);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -192,8 +199,8 @@ public class Grammar
 	private alias ElementParser_MINUS = ElementParser!(EnumTokenType.MINUS);
 	private static class ComplexParser_Sequential3
 	{
-		// id=<Sequential:<false:false:MINUS:>,<true:true:term:rhs>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:MINUS:>,<true:true:term:rhs>,<Action: lhs = lhs - rhs; >>
+		private alias ResultType = Result!(PartialTree!3);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -221,8 +228,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Switching4
 	{
-		// id=<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>,<Action: lhs = lhs + rhs; >>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>,<Action: lhs = lhs - rhs; >>>
+		private alias ResultType = Result!(PartialTree!4);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -248,8 +255,8 @@ public class Grammar
 	}
 	private static class ComplexParser_LoopQualified5
 	{
-		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>,<Action: lhs = lhs + rhs; >>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>,<Action: lhs = lhs - rhs; >>>>
+		private alias ResultType = Result!(PartialTree!5);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -269,8 +276,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential6
 	{
-		// id=<Sequential:<true:true:term:lhs>,<LoopQualified:false:<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>>>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<true:true:term:lhs>,<LoopQualified:false:<Switch:<Sequential:<false:false:PLUS:>,<true:true:term:rhs>,<Action: lhs = lhs + rhs; >>,<Sequential:<false:false:MINUS:>,<true:true:term:rhs>,<Action: lhs = lhs - rhs; >>>>,<Action: return lhs; >>
+		private alias ResultType = Result!(PartialTree!6);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -299,8 +306,8 @@ public class Grammar
 	private alias ElementParser_ASTERISK = ElementParser!(EnumTokenType.ASTERISK);
 	private static class ComplexParser_Sequential7
 	{
-		// id=<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>,<Action: lhs = lhs * rhs; >>
+		private alias ResultType = Result!(PartialTree!7);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -329,8 +336,8 @@ public class Grammar
 	private alias ElementParser_SLASH = ElementParser!(EnumTokenType.SLASH);
 	private static class ComplexParser_Sequential8
 	{
-		// id=<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>,<Action: lhs = lhs / rhs; >>
+		private alias ResultType = Result!(PartialTree!8);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -359,8 +366,8 @@ public class Grammar
 	private alias ElementParser_PERCENT = ElementParser!(EnumTokenType.PERCENT);
 	private static class ComplexParser_Sequential9
 	{
-		// id=<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>,<Action: lhs = lhs % rhs; >>
+		private alias ResultType = Result!(PartialTree!9);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -388,8 +395,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Switching10
 	{
-		// id=<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>,<Action: lhs = lhs * rhs; >>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>,<Action: lhs = lhs / rhs; >>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>,<Action: lhs = lhs % rhs; >>>
+		private alias ResultType = Result!(PartialTree!10);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -422,8 +429,8 @@ public class Grammar
 	}
 	private static class ComplexParser_LoopQualified11
 	{
-		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>,<Action: lhs = lhs * rhs; >>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>,<Action: lhs = lhs / rhs; >>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>,<Action: lhs = lhs % rhs; >>>>
+		private alias ResultType = Result!(PartialTree!11);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -443,8 +450,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential12
 	{
-		// id=<Sequential:<true:true:factor:lhs>,<LoopQualified:false:<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>>>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<true:true:factor:lhs>,<LoopQualified:false:<Switch:<Sequential:<false:false:ASTERISK:>,<true:true:factor:rhs>,<Action: lhs = lhs * rhs; >>,<Sequential:<false:false:SLASH:>,<true:true:factor:rhs>,<Action: lhs = lhs / rhs; >>,<Sequential:<false:false:PERCENT:>,<true:true:factor:rhs>,<Action: lhs = lhs % rhs; >>>>,<Action: return rhs; >>
+		private alias ResultType = Result!(PartialTree!12);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -472,8 +479,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential13
 	{
-		// id=<Sequential:<false:false:PLUS:>,<true:true:factor:t>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:PLUS:>,<true:true:factor:t>,<Action: return t; >>
+		private alias ResultType = Result!(PartialTree!13);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -501,8 +508,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential14
 	{
-		// id=<Sequential:<false:false:MINUS:>,<true:true:factor:t>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:MINUS:>,<true:true:factor:t>,<Action: return -t; >>
+		private alias ResultType = Result!(PartialTree!14);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -530,8 +537,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Switching15
 	{
-		// id=<Switch:<Sequential:<false:false:PLUS:>,<true:true:factor:t>>,<Sequential:<false:false:MINUS:>,<true:true:factor:t>>,<false:true:primary:>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Switch:<Sequential:<false:false:PLUS:>,<true:true:factor:t>,<Action: return t; >>,<Sequential:<false:false:MINUS:>,<true:true:factor:t>,<Action: return -t; >>,<false:true:primary:>>
+		private alias ResultType = Result!(PartialTree!15);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -565,8 +572,8 @@ public class Grammar
 	private alias ElementParser_INUMBER = ElementParser!(EnumTokenType.INUMBER);
 	private static class ComplexParser_Sequential16
 	{
-		// id=<Sequential:<true:false:INUMBER:t>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<true:false:INUMBER:t>,<Action: return t.to!real; >>
+		private alias ResultType = Result!(PartialTree!16);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -589,8 +596,8 @@ public class Grammar
 	private alias ElementParser_RP = ElementParser!(EnumTokenType.RP);
 	private static class ComplexParser_Sequential17
 	{
-		// id=<Sequential:<false:false:LP:>,<true:true:expr:e>,<false:false:RP:>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Sequential:<false:false:LP:>,<true:true:expr:e>,<false:false:RP:>,<Action: return e; >>
+		private alias ResultType = Result!(PartialTree!17);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -626,8 +633,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Switching18
 	{
-		// id=<Switch:<Sequential:<true:false:INUMBER:t>>,<false:false:FNUMBER:>,<Sequential:<false:false:LP:>,<true:true:expr:e>,<false:false:RP:>>>
-		private alias ResultType = Result!PartialTree;
+		// id=<Switch:<Sequential:<true:false:INUMBER:t>,<Action: return t.to!real; >>,<false:false:FNUMBER:>,<Sequential:<false:false:LP:>,<true:true:expr:e>,<false:false:RP:>,<Action: return e; >>>
+		private alias ResultType = Result!(PartialTree!18);
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
@@ -690,5 +697,37 @@ public auto parse(Token[] tokenList)
 	{
 		return Grammar.calc.ResultType(false, res.iterNext, res.iterError);
 	}
+
+	res.value.startReducing();
 	return res;
+}
+
+public class TreeReduce
+{
+	private alias calcValueT = ReturnType!__infered_calc__;
+	private static auto __infered_calc__()
+	{
+		{ std.stdio.writeln("  = ", e); }
+	}
+	static if(!is(calcValueT == void)) static calcValueT calc_value;
+	static real expr_value;
+	static real term_value;
+	static real factor_value;
+	static real primary_value;
+
+	static void reduce(RuleTree!"calc" tree)
+	{
+	}
+	static void reduce(RuleTree!"expr" tree)
+	{
+	}
+	static void reduce(RuleTree!"term" tree)
+	{
+	}
+	static void reduce(RuleTree!"factor" tree)
+	{
+	}
+	static void reduce(RuleTree!"primary" tree)
+	{
+	}
 }

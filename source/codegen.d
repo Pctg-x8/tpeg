@@ -186,7 +186,8 @@ void generatePartialParserHeader(File f) in { assert(f.isOpen); } body
 enum EnumCurrentState
 {
 	None, GeneratePatternCtRegex, GeneratePatternMatchList,
-	GenerateElementParsingStructures, GenerateParserUsingCode, GenerateParserClassName
+	GenerateElementParsingStructures, GenerateParserUsingCode, GenerateParserClassName,
+	GenerateValueSaucer, GenerateReduceMethods, GenerateActionInferer
 }
 
 class CodeGenerator : IVisitor
@@ -353,6 +354,7 @@ class CodeGenerator : IVisitor
 			writeln(q{public interface ISyntaxTree});
 			writeln("{");
 			writeln(q{	public @property Location location();});
+			writeln(q{	public void startReducing();});
 			writeln("}");
 			writeln(q{public class RuleTree(string RuleName) : ISyntaxTree});
 			writeln("{");
@@ -361,16 +363,20 @@ class CodeGenerator : IVisitor
 			writeln(q{	public override @property Location location(){ return this._child.location; }});
 			writeln(q{	public @property child(){ return this._child; }});
 			writeln();
+			writeln(q{	public override void startReducing(){ TreeReduce.reduce(this); }});
+			writeln();
 			writeln(q{	public this(ISyntaxTree c)});
 			writeln("	{");
 			writeln(q{		this._child = c;});
 			writeln("	}");
 			writeln("}");
-			writeln(q{public class PartialTree : ISyntaxTree});
+			writeln(q{public class PartialTree(uint PartialOrdinal) : ISyntaxTree});
 			writeln("{");
 			writeln(q{	ISyntaxTree[] children;});
 			writeln();
 			writeln(q{	public override @property Location location(){ return this.children.front.location; }});
+			writeln();
+			writeln(q{	public override void startReducing(){ TreeReduce.reduce(this); }});
 			writeln();
 			writeln(q{	public this(ISyntaxTree[] trees)});
 			writeln("	{");
@@ -383,6 +389,8 @@ class CodeGenerator : IVisitor
 			writeln();
 			writeln(q{	public override @property Location location(){ return this.token.location; }});
 			writeln(q{	public @property token(){ return this._token; }});
+			writeln();
+			writeln(q{	public override void startReducing(){ TreeReduce.reduce(this); }});
 			writeln();
 			writeln(q{	public this(Token t)});
 			writeln("	{");
@@ -397,16 +405,36 @@ class CodeGenerator : IVisitor
 		this.currentState = EnumCurrentState.None;
 		foreach(n; node.rules) n.accept(this);
 		this.currentFile.writeln("}");
-		this.currentFile.writeln();
-		this.currentFile.writeln(q{public auto parse(Token[] tokenList)});
-		this.currentFile.writeln("{");
-		this.currentFile.writeln(q{	auto res = Grammar.}, node.startRuleName, q{.parse(TokenIterator(0, tokenList));});
-		this.currentFile.writeln(q{	if(res.iterNext.current.type != EnumTokenType.__INPUT_END__)});
-		this.currentFile.writeln("	{");
-		this.currentFile.writeln(q{		return Grammar.}, node.startRuleName, q{.ResultType(false, res.iterNext, res.iterError);});
-		this.currentFile.writeln("	}");
-		this.currentFile.writeln(q{	return res;});
-		this.currentFile.writeln("}");
+		with(this.currentFile)
+		{
+			writeln();
+			writeln(q{public auto parse(Token[] tokenList)});
+			writeln("{");
+			writeln(q{	auto res = Grammar.}, node.startRuleName, q{.parse(TokenIterator(0, tokenList));});
+			writeln(q{	if(res.iterNext.current.type != EnumTokenType.__INPUT_END__)});
+			writeln("	{");
+			writeln(q{		return Grammar.}, node.startRuleName, q{.ResultType(false, res.iterNext, res.iterError);});
+			writeln("	}");
+			writeln();
+			writeln(q{	res.value.startReducing();});
+			writeln(q{	return res;});
+			writeln("}");
+			writeln();
+		}
+
+		// Generate Reduce Class
+		with(this.currentFile)
+		{
+			writeln(q{public class TreeReduce});
+			writeln("{");
+			this.currentState = EnumCurrentState.GenerateValueSaucer;
+			foreach(n; node.rules) n.accept(this);
+			writeln();
+			this.currentState = EnumCurrentState.GenerateReduceMethods;
+			foreach(n; node.rules) n.accept(this);
+			this.currentState = EnumCurrentState.None;
+			writeln("}");
+		}
 		this.currentFile.close();
 	}
 	public void visit(PatternNode node)
@@ -483,6 +511,31 @@ class CodeGenerator : IVisitor
 			this.currentState = EnumCurrentState.None;
 			this.currentFile.writeln(q{);});
 			break;
+		case EnumCurrentState.GenerateValueSaucer:
+			if(node.typeName == "auto")
+			{
+				// inferenced
+				this.currentFile.writeln(q{	private alias }, node.ruleName, q{ValueT = ReturnType!__infered_}, node.ruleName, q{__;});
+				this.currentFile.writeln(q{	private static auto __infered_}, node.ruleName, q{__()});
+				this.currentFile.writeln("	{");
+				this.currentState = EnumCurrentState.GenerateActionInferer;
+				node.ruleBody.accept(this);
+				this.currentState = EnumCurrentState.GenerateValueSaucer;
+				this.currentFile.writeln("	}");
+				this.currentFile.writeln(q{	static if(!is(}, node.ruleName, q{ValueT == void)) static }, node.ruleName, q{ValueT }, node.ruleName, q{_value;});
+			}
+			else if(node.typeName != "void")
+			{
+				// restricted has value
+				this.currentFile.writeln(q{	static }, node.typeName, q{ }, node.ruleName, q{_value;});
+			}
+			break;
+		case EnumCurrentState.GenerateReduceMethods:
+			this.currentFile.writeln(q{	static void reduce(RuleTree!}, `"`, node.ruleName, `"`, q{ tree)});
+			this.currentFile.writeln("	{");
+			node.ruleBody.accept(this);
+			this.currentFile.writeln("	}");
+			break;
 		default: break;
 		}
 	}
@@ -490,6 +543,9 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
+		case EnumCurrentState.GenerateActionInferer:
+			foreach(n; node.nodes) n.accept(this);
+			break;
 		case EnumCurrentState.GenerateElementParsingStructures:
 			foreach(n; node.nodes)
 			{
@@ -511,7 +567,7 @@ class CodeGenerator : IVisitor
 					writeln(q{	private static class }, className);
 					writeln("	{");
 					writeln("		// id=", node.ruleIdentifier);
-					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		private alias ResultType = Result!(PartialTree!}, node.complexRuleOrdinal, q{);});
 					writeln(q{		mixin PartialParserHeader!innerParse;});
 					writeln();
 					writeln(q{		private static ResultType innerParse(TokenIterator r)});
@@ -552,6 +608,9 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
+		case EnumCurrentState.GenerateActionInferer:
+			foreach(n; node.nodes) n.accept(this);
+			break;
 		case EnumCurrentState.GenerateElementParsingStructures:
 			foreach(n; node.nodes)
 			{
@@ -573,7 +632,7 @@ class CodeGenerator : IVisitor
 					writeln(q{	private static class }, className);
 					writeln("	{");
 					writeln("		// id=", node.ruleIdentifier);
-					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		private alias ResultType = Result!(PartialTree!}, node.complexRuleOrdinal, q{);});
 					writeln(q{		mixin PartialParserHeader!innerParse;});
 					writeln();
 					writeln(q{		private static ResultType innerParse(TokenIterator r)});
@@ -615,6 +674,9 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
+		case EnumCurrentState.GenerateActionInferer:
+			node.inner.accept(this);
+			break;
 		case EnumCurrentState.GenerateElementParsingStructures:
 			node.inner.accept(this);
 
@@ -633,7 +695,7 @@ class CodeGenerator : IVisitor
 					writeln(q{	private static class }, className);
 					writeln("	{");
 					writeln("		// id=", node.ruleIdentifier);
-					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		private alias ResultType = Result!(PartialTree!}, node.complexRuleOrdinal, q{);});
 					writeln(q{		mixin PartialParserHeader!innerParse;});
 					writeln();
 					writeln(q{		private static ResultType innerParse(TokenIterator r)});
@@ -678,6 +740,9 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
+		case EnumCurrentState.GenerateActionInferer:
+			node.inner.accept(this);
+			break;
 		case EnumCurrentState.GenerateElementParsingStructures:
 			node.inner.accept(this);
 
@@ -696,7 +761,7 @@ class CodeGenerator : IVisitor
 					writeln(q{	private static class }, className);
 					writeln("	{");
 					writeln("		// id=", node.ruleIdentifier);
-					writeln(q{		private alias ResultType = Result!PartialTree;});
+					writeln(q{		private alias ResultType = Result!(PartialTree!}, node.complexRuleOrdinal, q{);});
 					writeln(q{		mixin PartialParserHeader!innerParse;});
 					writeln();
 					writeln(q{		public static ResultType innerParse(TokenIterator r)});
@@ -732,6 +797,9 @@ class CodeGenerator : IVisitor
 	{
 		switch(this.currentState)
 		{
+		case EnumCurrentState.GenerateActionInferer:
+			this.currentFile.writeln(q{		}, `{`, node.actionString, `}`);
+			break;
 		default: break;
 		}
 	}
