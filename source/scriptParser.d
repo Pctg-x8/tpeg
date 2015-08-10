@@ -323,14 +323,7 @@ public class ScriptParser
 	private PEGNodeBase parsePEG()
 	{
 		// core procedure of parsing PEG(Parsing Expression Grammar)
-		if(this.parsingRange.front == '(')
-		{
-			return this.parsePEGSingle;
-		}
-		else
-		{
-			return this.parsePEGSwitch;
-		}
+		return this.parsePEGSwitch;
 	}
 	private PEGNodeBase parsePEGSwitch()
 	{

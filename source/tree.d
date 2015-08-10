@@ -4,6 +4,8 @@ import std.string, std.range, std.array, std.algorithm, std.conv;
 import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.visitor;
 
+import com.cterm2.tpeg.processTree;
+
 public abstract class NodeBase : IAcceptor
 {
 	Location loc;
@@ -112,10 +114,13 @@ public class RuleNode : NodeBase
 	string rule_name;
 	string type_name;
 	PEGNodeBase rule_body;
+	ProcessTreeBase _process;
 
 	public @property ruleName(){ return this.rule_name; }
 	public @property typeName(){ return this.type_name; }
 	public @property ruleBody(){ return this.rule_body; }
+	public @property process(){ return this._process; }
+	public @property process(ProcessTreeBase p){ this._process = p; }
 
 	public this(Location l, string rn, string tn, PEGNodeBase rb)
 	{
@@ -123,6 +128,7 @@ public class RuleNode : NodeBase
 		this.rule_name = rn;
 		this.type_name = tn;
 		this.rule_body = rb;
+		this._process = null;
 	}
 
 	mixin DefaultAcceptorImpl;

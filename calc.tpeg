@@ -33,19 +33,19 @@ import std.stdio, std.conv;
     start_rule calc
     rules
     {
-        calc = (expr:e { std.stdio.writeln("  = ", e); })+;
+        calc = (expr:e { std.stdio.writeln("  = ", e); })* { return; };
         expr<real> = term:lhs
             ( PLUS term:rhs { lhs = lhs + rhs; }
             / MINUS term:rhs { lhs = lhs - rhs; })* { return lhs; };
         term<real> = factor:lhs
             ( ASTERISK factor:rhs { lhs = lhs * rhs; }
             / SLASH factor:rhs { lhs = lhs / rhs; }
-            / PERCENT factor:rhs { lhs = lhs % rhs; })* { return rhs; };
+            / PERCENT factor:rhs { lhs = lhs % rhs; })* { return lhs; };
         factor<real> = PLUS factor:t { return t; }
             / MINUS factor:t { return -t; }
-            / primary;
+            / primary:t { return t; };
         primary<real> = INUMBER:t { return t.to!real; }
-            / FNUMBER
+            / FNUMBER:t { return t.to!real; }
             / LP expr:e RP { return e; };
     }
 }

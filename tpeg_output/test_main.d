@@ -20,9 +20,13 @@ void main()
         try
         {
             auto toks = Lexer.tokenizeStr(expr);
-            writeln("result: ", toks);
+            // writeln("result: ", toks);
             auto parseRes = Parser.parse(toks);
-            writeln("result: ", parseRes);
+            if(parseRes.failed)
+            {
+                writeln("Failed to parsing(input \"quit\" or \"q\" to exit).");
+            }
+            // writeln("result: ", parseRes);
         }
         catch(Lexer.TokenizeError e)
         {
