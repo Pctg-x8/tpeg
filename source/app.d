@@ -7,18 +7,25 @@ import com.cterm2.tpeg.symbolFinder;
 import com.cterm2.tpeg.processTree;
 import com.cterm2.tpeg.codegen;
 import com.cterm2.tpeg.parserGenerator;
+import Settings = com.cterm2.tpeg.settings;
 
 void main(string[] args)
 {
 	if(args.length <= 1)
 	{
 		writeln("Tokenized-PEG Parser Generator version indev.");
-		writeln("Usage: tpeg [-v] [InputFile]");
+		writeln("Usage: tpeg [-v] [-o(OutputDir)] [InputFile]");
 		writeln("  (-v for verbose process)");
+		writeln("  (-o for specify output directory(default is \"tpeg_output\"))");
 		return;
 	}
 
 	bool isVerbose = args.any!(a => a == "-v");
+	auto getOutputDirectoryParam = args.find!(a => a.startsWith("-o"));
+	if(!getOutputDirectoryParam.empty)
+	{
+		Settings.setOutputDirectory(getOutputDirectoryParam.front[2 .. $]);
+	}
 
 	StopWatch sw;
 	sw.start();

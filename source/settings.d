@@ -3,7 +3,12 @@ module com.cterm2.tpeg.settings;
 // settings
 import std.file;
 
-const OutputDirectory = "tpeg_output";
+auto OutputDirectory = "tpeg_output";
+
+void setOutputDirectory(string s)
+{
+    OutputDirectory = s;
+}
 
 void acquireOutputDirectory()
 {
