@@ -222,7 +222,12 @@ public class ScriptParser
 			this.dropIdentifier(token_name);
 			this.skipSpaces;
 			auto pattern = this.getStringToLF;
-			if(pattern.front == '"' && pattern.back == '"')
+			if(pattern.front == '@')
+			{
+				// @... (forcing regex)
+				nodes ~= new PatternNode(enterLocation, token_name, pattern[1 .. $], true);
+			}
+			else if(pattern.front == '"' && pattern.back == '"')
 			{
 				nodes ~= new PatternNode(enterLocation, token_name, pattern[1 .. $ - 1], false);
 			}

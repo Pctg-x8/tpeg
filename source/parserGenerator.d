@@ -498,11 +498,11 @@ class ParserGenerator : IVisitor
                 this.currentState = EnumCurrentState.GenerateParsingStructures;
                 this.currentFile.writeln(3.toTabs, "if(result.failed)");
                 this.currentFile.writeln(3.toTabs, "{");
-                this.currentFile.writeln(4.toTabs, "return ResultType(true, r, r, new PartialTreeType());");
+                this.currentFile.writeln(4.toTabs, "return ResultType(true, r, r, new PartialTreeType(null));");
                 this.currentFile.writeDeclarationEnd(3);
                 this.currentFile.writeln(3.toTabs, "else");
                 this.currentFile.writeln(3.toTabs, "{");
-                this.currentFile.writeln(4.toTabs, "return ResultType(true, result.iterNext, result.iterError, new PartialreeType([result.value]));");
+                this.currentFile.writeln(4.toTabs, "return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));");
                 this.currentFile.writeDeclarationEnd(3);
                 this.currentFile.writePartialParserFooter();
             }
@@ -589,12 +589,17 @@ class ParserGenerator : IVisitor
         }
         public void visit(HasValueReferenceRange node)
         {
-            this.referenceStack ~= node.currentReference;
-            this.outer.currentFile.writeln(2.toTabs, "// Reference Base: ", this.referenceStack.join("."));
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "if(", (this.referenceStack ~ node.currentReference).join("."), ".length > ", node.referenceAt, ")");
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{");
+            this.exTabs++;
+            this.referenceStack ~= node.currentReference ~ "[" ~ node.referenceAt.to!string ~ "]";
+            this.outer.currentFile.writeln(2.toTabs, "// HasValue: Reference Base: ", this.referenceStack.join("."));
             //this.outer.currentFile.writeln(2.toTabs, "// HasValueReferenceRange: ", node.currentReference, " requires index ", node.referenceAt);
             foreach(n; node.innerTrees) n.accept(this);
+            this.exTabs--;
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "}");
             this.referenceStack.popBack();
-            this.outer.currentFile.writeln(2.toTabs, "// Reference Base: ", this.referenceStack.join("."));
+            this.outer.currentFile.writeln(2.toTabs, "// HasValue: Reference Base: ", this.referenceStack.join("."));
         }
         public void visit(TokenConditionalReferenceRange node)
         {
@@ -620,13 +625,6 @@ class ParserGenerator : IVisitor
             this.exTabs--;
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "}");
             this.referenceStack.popBack();
-
-            this.referenceStack ~= node.currentReference;
-            this.outer.currentFile.writeln(2.toTabs, "// Reference Base: ", this.referenceStack.join("."));
-            // this.outer.currentFile.writeln(2.toTabs, "// TokenConditionalReferenceRange: ", node.currentReference, " requires token EnumTokenType.", node.tokenType);
-            foreach(n; node.innerTrees) n.accept(this);
-            this.referenceStack.popBack();
-            this.outer.currentFile.writeln(2.toTabs, "// Reference Base: ", this.referenceStack.join("."));
         }
         public void visit(RuleConditionalReferenceRange node)
         {

@@ -56,6 +56,7 @@ void writeTokenClassDeclaration(File f) in { assert(f.isOpen); } body
 	f.writeln();
 	f.writeln("// utility //");
 	f.writeBeginDeclaration(0, [], "struct", "MatchStruct");
+	f.writeln(q{	bool isPerfectMatch;});
 	f.writeln(q{	bool match;});
 	f.writeln(q{	string matchStr;});
 	f.writeln(q{	EnumTokenType itype;});
@@ -63,13 +64,13 @@ void writeTokenClassDeclaration(File f) in { assert(f.isOpen); } body
 	f.writeln(q{	public @property length(){ return this.matchStr.length; }});
 	f.writeln( "}");
 	f.writeln(q{auto matchExactly(string s, EnumTokenType t)(string parsingRange)}, "\n", "{");
-	f.writeln(q{	return MatchStruct(parsingRange.startsWith(s), s, t);});
+	f.writeln(q{	return MatchStruct(true, parsingRange.startsWith(s), s, t);});
 	f.writeln( "}");
 	f.writeln(q{auto matchRegex(alias rx, EnumTokenType t)(string parsingRange)});
 	f.writeln( "{");
 	f.writeln(q{	auto match = parsingRange.matchFirst(rx);});
-	f.writeln(q{	if(match.empty) return MatchStruct(false, "", t);});
-	f.writeln(q{	return MatchStruct(match.pre.empty, match.hit, t);});
+	f.writeln(q{	if(match.empty) return MatchStruct(false, false, "", t);});
+	f.writeln(q{	return MatchStruct(false, match.pre.empty, match.hit, t);});
 	f.writeln( "}");
 	f.writeln();
 }
@@ -192,23 +193,29 @@ class CodeGenerator : IVisitor
 		this.currentFile.writeln(this.matchListTemp[0 .. $ - 3]);
 		this.currentFile.writeln("\t\t", "].", q{filter!(a => a.match)}, ";");
 		this.currentFile.writeln("\t\t", q{if(matches.empty) throw new TokenizeError("No match patterns", loc);});
-		this.currentFile.writeln("\t\t", q{auto longest_match = matches.reduce!((a, b)
-		{
-			if(a.length == b.length) throw new TokenizeError("Conflicting patterns", loc);
-			return a.length > b.length ? a : b;
-		});});
-		this.currentFile.writeln("\n", "\t\t", q{if(longest_match.itype != EnumTokenType.__SKIP_PATTERN__)
-		{
-			tokenList ~= new Token(loc, longest_match.itype, longest_match.matchStr);
-		}
-		auto lines = longest_match.matchStr.split(ctRegex!r"\n");
-		foreach(a; lines[0 .. $ - 1])
-		{
-			loc.col = 1;
-			loc.line++;
-		}
-		loc.col += lines[$ - 1].length;
-		parsingRange = parsingRange.drop(longest_match.length);});
+		this.currentFile.writeln("\t\t", "auto longest_match = matches.reduce!((a, b)");
+		this.currentFile.writeln("\t\t", "{");
+		this.currentFile.writeln("\t\t\t", "if(a.length == b.length)");
+		this.currentFile.writeln("\t\t\t", "{");
+		this.currentFile.writeln("\t\t\t\t", "if(a.isPerfectMatch && !b.isPerfectMatch) return a;");
+		this.currentFile.writeln("\t\t\t\t", "else if(!a.isPerfectMatch && b.isPerfectMatch) return b;");
+		this.currentFile.writeln("\t\t\t\t", "else throw new TokenizeError(\"Conflicting patterns\", loc);");
+		this.currentFile.writeln("\t\t\t", "}");
+		this.currentFile.writeln("\t\t\t", "return a.length > b.length ? a : b;");
+		this.currentFile.writeln("\t\t", "});");
+		this.currentFile.writeln();
+		this.currentFile.writeln("\t\t", "if(longest_match.itype != EnumTokenType.__SKIP_PATTERN__)");
+		this.currentFile.writeln("\t\t", "{");
+		this.currentFile.writeln("\t\t\t", "tokenList ~= new Token(loc, longest_match.itype, longest_match.matchStr);");
+		this.currentFile.writeln("\t\t", "}");
+		this.currentFile.writeln("\t\t", "auto lines = longest_match.matchStr.split(ctRegex!r\"\n\");");
+		this.currentFile.writeln("\t\t", "foreach(a; lines[0 .. $ - 1])");
+		this.currentFile.writeln("\t\t", "{");
+		this.currentFile.writeln("\t\t\t", "loc.col = 1;");
+		this.currentFile.writeln("\t\t\t", "loc.line++;");
+		this.currentFile.writeln("\t\t", "}");
+		this.currentFile.writeln("\t\t", "loc.col += lines[$ - 1].length;");
+		this.currentFile.writeln("\t\t", "parsingRange = parsingRange.drop(longest_match.length);");
 		this.currentFile.writeln("\t", "}");
 		this.currentFile.writeln();
 		this.currentFile.writeln("\t", q{tokenList ~= new Token(loc, EnumTokenType.__INPUT_END__, "[EOI]");});
@@ -237,7 +244,14 @@ class CodeGenerator : IVisitor
 					this.currentFile.write("SkipPattern", this.skipPatternOrdinal);
 				}
 				else this.currentFile.write(node.tokenName);
-				this.currentFile.writeln(" = ctRegex!r\"", node.patternString, "\";");
+				if(node.patternString.any!(a => a == '"'))
+				{
+					this.currentFile.writeln(" = ctRegex!`", node.patternString, "`;");
+				}
+				else
+				{
+					this.currentFile.writeln(" = ctRegex!r\"", node.patternString, "\";");
+				}
 			}
 			break;
 		case EnumCurrentState.GeneratePatternMatchList:

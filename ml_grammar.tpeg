@@ -1,0 +1,271 @@
+# Maple Latte Grammar declaration
+
+package com.cterm2.ml
+
+tokenizer
+{
+	module lexer
+
+	skip_pattern	[ \t\r\n]
+	skip_pattern	//[^\n]*\n
+	skip_pattern	/*[^\*]*\*/
+	patterns
+	{
+		INUMBER		[0-9]+
+		HNUMBER		0x[0-9A-Fa-f]+
+		FNUMBER		[0-9]*\.[0-9]+(f|F)
+		DNUMBER		[0-9]*\.[0-9]+(d|D)
+		NUMBER		[0-9]*\.[0-9]+
+		STRING		@"[^"]*"
+		CHARACTER	'[^']*'
+		IDENTIFIER	[A-Za-z_][A-Za-z0-9_]*
+
+		SEMICOLON	";"
+		PERIOD		"."
+		COMMA		","
+		COLON		":"
+		RARROW		"->"
+		RARROW2		"=>"
+		LARROW		"<-"
+		SHARP		"#"
+		EQUAL		"="
+		PLUS_EQ		"+="
+		MINUS_EQ	"-="
+		ASTERISK_EQ	"*="
+		SLASH_EQ	"/="
+		PERCENT_EQ	"%="
+		AMPASAND_EQ	"&="
+		VL_EQ		"|="
+		CA_EQ		"^="
+		LAB2_EQ		"<<="
+		RAB2_EQ		">>="
+
+		AMPASAND2	"&&"
+		VL2			"||"
+		CA2			"^^"
+		PLUS		"+"
+		MINUS		"-"
+		ASTERISK	"*"
+		SLASH		"/"
+		PERCENT		"%"
+		AMPASAND	"&"
+		VL			"|"
+		CA			"^"
+		LAB2		"<<"
+		RAB2		">>"
+		LAB			"<"
+		RAB			">"
+		LAB_EQ		"<="
+		RAB_EQ		">="
+		EQ2			"=="
+		EX_EQ		"!="
+		QUESTION	"?"
+		PLUS2		"++"
+		MINUS2		"--"
+		ASTERISK2	"**"
+
+		PERIOD2		".."
+		PERIOD3		"..."
+
+		LP			"("
+		RP			")"
+		LB			"{"
+		RB			"}"
+		LBR			"["
+		RBR			"]"
+
+		# keywords
+		PACKAGE		"package"
+		IMPORT		"import"
+		CLASS		"class"
+		TRAIT		"trait"
+		ENUM		"enum"
+		EXTENDS		"extends"
+		WITH		"with"
+		TEMPLATE	"template"
+		ALIAS		"alias"
+		PROPERTY	"property"
+		FUNCTION	"funcion"
+
+		IF			"if"
+		ELSE		"else"
+		WHILE		"while"
+		DO			"do"
+		FOREACH		"foreach"
+		FOR			"for"
+		RETURN		"return"
+		BREAK		"break"
+		CONTINUE	"continue"
+		SWITCH		"switch"
+		CASE		"case"
+		DEFAULT		"default"
+
+		TYPEOF		"typeof"
+		THIS		"this"
+		SUPER		"super"
+		TRUE		"true"
+		FALSE		"false"
+		NULL		"null"
+
+		PUBLIC		"public"
+		PRIVATE		"private"
+		PROTECTED	"protected"
+		FINAL		"final"
+		CONST		"const"
+		STATIC		"static"
+		OVERRIDE	"override"
+
+		AUTO		"auto"
+		VOID		"void"
+		CHAR		"char"
+		UCHAR		"uchar"
+		BYTE		"byte"
+		SHORT		"short"
+		USHORT		"ushort"
+		INT			"int"
+		UINT		"uint"
+		LONG		"long"
+		ULONG		"ulong"
+	}
+}
+
+parser
+{
+	module parser
+	header
+	{
+	}
+
+	start_rule compilation_unit
+	rules
+	{
+		# entry #
+		compilation_unit = [package_def] script_element*;
+		package_def = PACKAGE package_id SEMICOLON;
+
+		# declarations #
+		script_element = import_decl / partial_package_def / class_def / trait_def / enum_def
+		 	/ template_def / alias_def / class_body;
+		import_decl = IMPORT import_list SEMICOLON;
+		partial_package_def = PACKAGE package_id (script_element / LB script_element* RB);
+		class_def = class_qualifier* CLASS def_id [EXTENDS type] (WITH type)*
+			(SEMICOLON / LB (import_decl / class_body)* RB);
+		class_body = field_def / method_def / property_def / ctor_def;
+		trait_def = trait_qualifier* TRAIT def_id (WITH type)*
+			(SEMICOLON / LB (import_decl / trait_body)* RB);
+		trait_body = method_def / property_def / ctor_def;
+		enum_def = enum_qualifier* ENUM IDENTIFIER
+			(SEMICOLON / LB import_decl* [enum_body] (import_decl / class_body)* RB);
+		enum_body = enum_element (COMMA enum_element)* [COMMA / SEMICOLON];
+		enum_element = IDENTIFIER [LP expression_list RP];
+		template_def = template_qualifier* TEMPLATE IDENTIFIER LP [template_arg_list] RP
+			(SEMICOLON / template_body / LB template_body* RB);
+		template_body = import_decl / class_def / trait_def / enum_def / template_def / alias_def;
+		alias_def = alias_qualifier* ALIAS (IDENTIFIER EQUAL type / type IDENTIFIER);
+
+		# body declarations #
+		field_def = (field_qualifier* type / field_qualifier+) field_def_list SEMICOLON;
+		field_def_list = nvpair (COMMA nvpair)*;
+		nvpair = IDENTIFIER [EQUAL expression];
+		method_def = function_def / procedure_def / abstract_method_def;
+		procedure_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP statement;
+		function_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP EQUAL expression SEMICOLON;
+		abstract_method_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP SEMICOLON;
+		property_def = getter_def / setter_def;
+		setter_def = method_qualifier* PROPERTY [type] def_id LP type IDENTIFIER RP
+			(statement / SEMICOLON);
+		getter_def = method_qualifier* PROPERTY [type] def_id [LP RP]
+			(EQUAL expression SEMICOLON / statement / SEMICOLON);
+		ctor_def = ctor_qualifier* THIS LP [varg_list] RP
+			(statement / SEMICOLON);
+
+		# statements #
+		statement = if_stmt / while_stmt / do_stmt / foreach_stmt / for_stmt / return_stmt /
+			break_stmt / continue_stmt / label_stmt / switch_stmt / block_stmt / expression SEMICOLON / SEMICOLON;
+		if_stmt = IF LP expression RP statement [ELSE statement];
+		while_stmt = WHILE LP expression RP statement;
+		do_stmt = DO statement WHILE LP expression RP SEMICOLON;
+		foreach_stmt = FOREACH LP [type] IDENTIFIER LARROW expression RP statement;
+		for_stmt = FOR LP [expression] SEMICOLON [expression] SEMICOLON [expression] RP statement;
+		return_stmt = RETURN [expression] SEMICOLON;
+		break_stmt = BREAK [IDENTIFIER] SEMICOLON;
+		continue_stmt = CONTINUE [IDENTIFIER] SEMICOLON;
+		label_stmt = IDENTIFIER COLON;
+		switch_stmt = SWITCH LP expression RP LB (case_stmt / default_stmt)* RB;
+		case_stmt = CASE (expression_list / [CONST] def_id COLON type [IF expression]) RARROW2 statement;
+		default_stmt = DEFAULT RARROW2 statement;
+		block_stmt = LBR (localvar_def / statement)* RBR;
+		localvar_def = (lvar_qualifier* type / lvar_qualifier+) nvpair (COMMA nvpair)* SEMICOLON;
+
+		# expressions #
+		expression_list = expression (COMMA expression)*;
+		expression = postfix_expr (EQUAL / assign_ops) expression / alternate_expr;
+		assign_ops = PLUS_EQ / MINUS_EQ / ASTERISK_EQ / SLASH_EQ / PERCENT_EQ / AMPASAND_EQ / VL_EQ / CA_EQ
+			/ LAB2_EQ / RAB2_EQ;
+		alternate_expr = short_expr [QUESTION short_expr COLON short_expr];
+		short_expr = comp_expr (AMPASAND2 comp_expr / VL2 comp_expr / CA2 comp_expr)*;
+		comp_expr = shift_expr (LAB shift_expr / RAB shift_expr / EQ2 shift_expr
+			/ EX_EQ shift_expr / LAB_EQ shift_expr / RAB_EQ shift_expr)*;
+		shift_expr = bit_expr (LAB2 bit_expr / RAB2 bit_expr)*;
+		bit_expr = a1_expr (AMPASAND a1_expr / VL a1_expr / CA a1_expr)*;
+		a1_expr = a2_expr (PLUS a2_expr / MINUS a2_expr)*;
+		a2_expr = range_expr (ASTERISK range_expr / SLASH range_expr / PERCENT range_expr)*;
+		range_expr = prefix_expr (PERIOD2 prefix_expr)*;
+		prefix_expr = PLUS prefix_expr / MINUS prefix_expr
+			/ PLUS2 prefix_expr / MINUS2 prefix_expr / ASTERISK2 / prefix_expr / postfix_expr;
+		postfix_expr = primary_expr (PLUS2 / MINUS2 / ASTERISK2
+			/ LBR [expression] RBR / LP [expression_list] RP
+			/ PERIOD IDENTIFIER [template_tail] / RARROW (single_types / LP restricted_type RP))*;
+		primary_expr = literals / special_literals / lambda_expr / LP expression RP / IDENTIFIER [template_tail];
+		literals = INUMBER / HNUMBER / FNUMBER / DNUMBER / NUMBER / STRING / CHARACTER
+			/ function_literal / array_literal;
+		function_literal = FUNCTION LP [literal_varg_list] RP LB statement* RB;
+		array_literal = LBR [expression_list / assoc_array_element_list] RBR;
+		special_literals = THIS / SUPER / TRUE / FALSE / NULL;
+		lambda_expr = (literal_varg / LP [literal_varg_list] RP) RARROW2 expression;
+
+		# arglists #
+		template_arg_list = template_arg (COMMA template_arg)*;
+		template_arg = ((type / CLASS / ALIAS) IDENTIFIER / IDENTIFIER) (EQUAL type)*;
+		varg_list = varg (COMMA varg)*;
+		varg = type [IDENTIFIER [EQUAL expression]] [PERIOD3];
+		literal_varg_list = literal_varg (COMMA literal_varg);
+		literal_varg = [type] IDENTIFIER [EQUAL expression] [PERIOD3];
+		assoc_array_element_list = assoc_array_element (COMMA assoc_array_element)*;
+		assoc_array_element = expression COLON expression;
+
+		# qualifiers #
+		class_qualifier = PUBLIC / PRIVATE / FINAL / STATIC;
+		trait_qualifier = PUBLIC / PRIVATE / STATIC;
+		enum_qualifier = PUBLIC / PRIVATE / STATIC;
+		template_qualifier = PUBLIC / PRIVATE;
+		alias_qualifier = PUBLIC / PRIVATE;
+		type_qualifier = CONST;
+		field_qualifier = PUBLIC / PRIVATE / PROTECTED / STATIC / FINAL / CONST;
+		method_qualifier = PUBLIC / PRIVATE / PROTECTED / STATIC / FINAL / CONST / OVERRIDE;
+		ctor_qualifier = PUBLIC / PRIVATE / PROTECTED / CONST;
+		lvar_qualifier = PRIVATE / PROTECTED / CONST / STATIC;
+
+		# types for definition #
+		def_id = IDENTIFIER [LBR [def_id_arg_list] RBR];
+		def_id_arg_list = def_id_arg (COMMA def_id_arg)*;
+		def_id_arg = IDENTIFIER (EQUAL type / COLON type / RARROW type)*;
+
+		# types for using #
+		type = type_qualifier* type_body;
+		type_body = (AUTO / restricted_type) [FUNCTION LP [varg_list] RP];
+		restricted_type = primitive_types (LBR [expression] RBR)*;
+		primitive_types = register_types / template_instance / __typeof;
+		__typeof = TYPEOF LP [expression / restricted_type] RP;
+		register_types = VOID / CHAR / UCHAR / BYTE / SHORT / USHORT / INT / UINT / LONG / ULONG;
+		template_instance = IDENTIFIER [template_tail];
+		template_tail = SHARP (single_types / LP [restricted_type (COMMA restricted_type)*] RP);
+		single_types = AUTO / single_restricted_type;
+		single_restricted_type = register_types / IDENTIFIER;
+
+		# package paths #
+		import_list = import_item (COMMA import_item);
+		import_item = IDENTIFIER (PERIOD IDENTIFIER)* [PERIOD ASTERISK / PERIOD LB import_list RB];
+		package_id = IDENTIFIER (PERIOD IDENTIFIER)*;
+	}
+}

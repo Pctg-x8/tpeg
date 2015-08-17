@@ -1,8 +1,10 @@
 module com.cterm2.tpeg.sample.calc.main;
 
-import std.stdio, std.array, std.algorithm;
-import Lexer = com.cterm2.tpeg.sample.calc.lexer;
-import Parser = com.cterm2.tpeg.sample.calc.parser;
+import std.stdio, std.array, std.algorithm, std.datetime;
+//import Lexer = com.cterm2.tpeg.sample.calc.lexer;
+//import Parser = com.cterm2.tpeg.sample.calc.parser;
+import Lexer = com.cterm2.ml.lexer;
+import Parser = com.cterm2.ml.parser;
 
 void main()
 {
@@ -19,12 +21,19 @@ void main()
 
         try
         {
+            StopWatch sw;
+            sw.start();
+            scope(exit)
+            {
+                writeln("- process time: ", sw.peek.usecs, " us.");
+            }
             auto toks = Lexer.tokenizeStr(expr);
             // writeln("result: ", toks);
             auto parseRes = Parser.parse(toks);
             if(parseRes.failed)
             {
-                writeln("Failed to parsing(input \"quit\" or \"q\" to exit).");
+                writeln("Failed to parsing(input \"quit\" or \"q\" to exit) at token no.",
+                    parseRes.iterError.pos, ": type=", parseRes.iterError.current.type);
             }
             // writeln("result: ", parseRes);
         }
