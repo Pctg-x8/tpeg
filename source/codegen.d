@@ -170,7 +170,7 @@ class CodeGenerator : IVisitor
 		this.currentState = EnumCurrentState.GeneratePatternCtRegex;
 		foreach(i, n; node.skip_patterns)
 		{
-			this.skipPatternOrdinal = i + 1;
+			this.skipPatternOrdinal = cast(uint)(i + 1);
 			n.accept(this);
 		}
 		foreach(n; node.patterns) n.accept(this);
@@ -185,7 +185,7 @@ class CodeGenerator : IVisitor
 		this.matchListTemp = "";
 		foreach(i, n; node.skip_patterns)
 		{
-			this.skipPatternOrdinal = i + 1;
+			this.skipPatternOrdinal = cast(uint)(i + 1);
 			n.accept(this);
 		}
 		foreach(n; node.patterns) n.accept(this);
