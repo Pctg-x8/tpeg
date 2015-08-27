@@ -135,6 +135,7 @@ parser
 	header
 	{
 import com.cterm2.ml.syntaxTree;
+import std.typecons, std.conv;
 	}
 
 	start_rule compilation_unit
@@ -217,28 +218,75 @@ import com.cterm2.ml.syntaxTree;
 		postfix_expr = primary_expr (PLUS2 / MINUS2 / ASTERISK2
 			/ LBR [expression] RBR / LP [expression_list] RP
 			/ PERIOD IDENTIFIER [template_tail] / RARROW (single_types / LP restricted_type RP))*;
-		primary_expr = literals / special_literals / lambda_expr / LP expression RP / IDENTIFIER [template_tail];
-		literals = INUMBER / HNUMBER / FNUMBER / DNUMBER / NUMBER / STRING / CHARACTER
-			/ function_literal / array_literal;
-		function_literal = FUNCTION LP [literal_varg_list] RP LB statement* RB;
-		array_literal = LBR [expression_list / assoc_array_element_list] RBR;
-		special_literals = THIS / SUPER / TRUE / FALSE / NULL;
-		lambda_expr = (literal_varg / LP [literal_varg_list] RP) RARROW2 expression;
+		primary_expr<ExpressionNode> =
+			  literals:l						{ return l; }
+			/ special_literals:sl				{ return sl; }
+			/ lambda_expr:le					{ return le; }
+			/ LP expression:e RP				{ return e; }
+			/ IDENTIFIER:id template_tail:tt	{ return new TemplateInstantiateNode(id.location, id.text, tt); }
+			/ IDENTIFIER:id						{ return new IdentifierReferenceNode(id.location, id.text); };
+		literals<ExpressionNode> =
+			  INUMBER:t				{ return new IntLiteralNode(t.location, t.text.to!int); }
+			/ HNUMBER:t				{ return new IntLiteralNode(t.location, t.text.to!int(16)); }
+			/ FNUMBER:t				{ return new FloatLiteralNode(t.location, t.text.to!float); }
+			/ DNUMBER:t				{ return new DoubleLiteralNode(t.location, t.text.to!double); }
+			/ NUMBER:t				{ return new NumericLiteralNode(t.location, t.text.to!real); }
+			/ STRING:t				{ return new StringLiteralNode(t.location, t.text); }
+			/ CHARACTER:t			{ return new CharacterLiteralNode(t.location, t.text[0]); }
+			/ function_literal:fl	{ return fl; }
+			/ array_literal:al		{ return al; };
+		function_literal =
+			  FUNCTION:f LP literal_varg_list:vl RP block_stmt:bs	{ return new FunctionLiteralNode(f.location, vl, bs); }
+			/ FUNCTION:f LP RP block_stmt:bs						{ return new FunctionLiteralNode(f.location, null, bs); };
+		array_literal =
+			  LBR:ft expression_list:el RBR { return new ArrayLiteralNode(ft.location, el); }
+			/ LBR:ft assoc_array_element_list:el RBR { return new AssocArrayLiteralNode(ft.location, el); }
+			/ LBR:ft RBR { return new ArrayLiteralNode(ft.location, null); };
+		special_literals<ExpressionNode> =
+			  THIS:t		{ return new ThisReferenceNode(t.location); }
+			/ SUPER:t		{ return new SuperReferenceNode(t.location); }
+			/ TRUE:t		{ return new BooleanLiteralNode(t.location, true); }
+			/ FALSE:t		{ return new BooleanLiteralNode(t.location, false); }
+			/ NULL:t		{ return new NullLiteralNode(t.location); };
+		lambda_expr =
+			  LP:t literal_varg_list:ps RP RARROW2 expression:e { return new FunctionLiteralNode(t.location, ps, e); }
+			/ LP:t RP RARROW2 expression:e { return new FunctionLiteralNode(t.location, null, e); }
+			/ literal_varg:vp RARROW2 expression:e { return new FunctionLiteralNode(vp, e); };
 
 		# arglists #
-		template_arg_list = template_arg (COMMA template_arg)*;
-		template_arg = ((type / CLASS / ALIAS) IDENTIFIER / IDENTIFIER) (EQUAL type)*;
-		varg_list = varg:t { auto tlist = [t]; } (COMMA varg:v { tlist ~= v })* { return tlist; };
+		template_arg_list = { TemplateVirtualParamNode[] params; }
+			template_arg:p { params ~= p; } (COMMA template_arg:p2 { params ~= p2; })* { return params; };
+		template_arg = template_arg_head:head (EQUAL type:t { head = new TemplataeVirtualParamNode(head, t); })* { return head; };
+		template_arg_type = { alias ReturnType = Tuple!(TemplateVirtualParamNode.ParamType, "type", TypeNode, "stype", Location, "location"); }
+			( type:t { return ReturnType(TemplateVirtualParamNode.ParamType.Type, t, t.location); }
+			/ CLASS:tk { return ReturnType(TemplateVirtualParamNode.ParamType.Class, null, tk.location); }
+			/ ALIAS:tk { return ReturnType(TemplateVirutalParamNode.ParamType.SymbolAlias, null, tk.location); });
+		template_arg_head =
+			  template_arg_type:type IDENTIFIER:id	{ return new TemplateVirtualParamNode(type.location, type.type, type.stype, id.text); }
+			/ IDENTIFIER:id							{ return new TemplateVirutalParamNode(id.location, TemplateVirtualParamNode.ParamType.Any, null, id.text); };
+		varg_list = { VirtualParamNode params[]; }
+			varg:t { params ~= t; } (COMMA varg:v { params ~= v; })* { return params; };
 		varg = type:t IDENTIFIER:n EQUAL expression:dv PERIOD3 { return new VirtualParamNode(t, n.text, dv, true); }
 			/ type:t IDENTIFIER:n EQUAL expression:dv { return new VirtualParamNode(t, n.text, dv, false); }
 			/ type:t IDENTIFIER:n PERIOD3 { return new VirtualParamNode(t, n.text, null, true); }
 			/ type:t IDENTIFIER:n { return new VirtualParamNode(t, n.text, null, false); }
 			/ type:t PERIOD3 { return new VirtualParamNode(t, null, null, true); }
 			/ type:t { return new VirtualParamNode(t, null, null, false); };
-		literal_varg_list = literal_varg (COMMA literal_varg);
-		literal_varg = [type] IDENTIFIER [EQUAL expression] [PERIOD3];
-		assoc_array_element_list = assoc_array_element (COMMA assoc_array_element)*;
-		assoc_array_element = expression COLON expression;
+		literal_varg_list = { VirtualParamNode[] params; }
+			literal_varg:p1 { params ~= p1; } (COMMA literal_varg:p2 { params ~= p2; })* { return params; };
+		literal_varg =
+			  type:t IDENTIFIER:id EQUAL expression:e PERIOD3	{ return new VirtualParamNode(t, id.text, e, true); }
+			/ type:t IDENTIFIER:id EQUAL expression:e			{ return new VirtualParamNode(t, id.text, e, false); }
+			/ type:t IDENTIFIER:id PERIOD3						{ return new VirtualParamNode(t, id.text, null, true); }
+			/ type:t IDENTIFIER:id								{ return new VirtualParamNode(t, id.text, null, false); }
+			/ IDENTIFIER:id EQUAL expression:e PERIOD3			{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, e, true); }
+			/ IDENTIFIER:id EQUAL expression:e					{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, e, false); }
+			/ IDENTIFIER:id PERIOD3								{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, null, true); }
+			/ IDENTIFIER:id										{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, null, false); };
+		assoc_array_element_list = { AssocArrayElementNode[] nodes; }
+			assoc_array_element:n { nodes ~= n; } (COMMA assoc_array_element:n2 { nodes ~= n2; })* { return nodes; };
+		assoc_array_element =
+			expression:k COLON expression:v { return new AssocArrayElementNode(k, v); };
 
 		# qualifiers #
 		class_qualifier =
@@ -288,12 +336,20 @@ import com.cterm2.ml.syntaxTree;
 			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); };
 
 		# types for definition #
-		def_id = IDENTIFIER [LBR [def_id_arg_list] RBR];
-		def_id_arg_list = def_id_arg (COMMA def_id_arg)*;
-		def_id_arg = IDENTIFIER (EQUAL type / COLON type / RARROW type)*;
+		def_id<DefinitionIdentifierNode> =
+			  IDENTIFIER:id LBR def_id_arg_list:params RBR { return new DefinitionIdentifierNode(id.location, id.text, params); }
+			/ IDENTIFIER:id [LBR RBR] { return new DefinitionIdentifierNode(id.location, id.text, null); };
+		def_id_arg_list<DefinitionIdentifierParamNode[]> = { DefinitionIdentifierParamNode[] nodes; }
+			def_id_arg:first_t { nodes ~= first_t; } (COMMA def_id_arg:second_t { nodes ~= second_t; })* { return nodes; };
+		def_id_arg<DefinitionIdentifierParamNode> =
+			def_id_argname:n
+			(EQUAL type:t { n = n.withDefaultValue(t); }
+				/ COLON type:t { n = n.withExtendedFrom(t); }
+				/ RARROW type:t { n = n.withCastableTo(t); })* { return n; };
+		def_id_argname = IDENTIFIER:t { return new DefinitionIdentifierParamNode(t.location, t.text); };
 
 		# types for using #
-		type =
+		type<TypeNode> =
 			{ auto tq = Qualifier(Location(int.max, int.max), 0); bool hasQualifier = false; }
 			(type_qualifier:tqq { tq = tq.combine(tqq); hasQualifier = true; })*
 			type_body:tb
@@ -327,9 +383,15 @@ import com.cterm2.ml.syntaxTree;
 		template_instance<TemplateInstanceTypeNode> =
 			IDENTIFIER:t [template_tail:v { return new TemplateInstanceTypeNode(t.location, t.text, v); }]
 			{ return new TemplateInstanceNode(t.location, t.text, null); };
-		template_tail<TypeNode[]> =
-			SHARP (single_types:st { return [st]; }
-			/ LP [restricted_type:first_t { auto types = [first_t]; } (COMMA restricted_type:second_t { types ~= second_t; })*] RP { return types; });
+		template_tail<TemplateParamNode[]> =
+			  SHARP single_types:st { return [new TemplateParamNode(st.location, st)]; }
+			/ SHARP primary_expr:pe { return [new TemplateParamNode(pe.location, pe)]; }
+			/ { TemplateParamNode[] params; } SHARP LP template_param:first_t { params ~= first_t; } (COMMA template_param:second_t { params ~= second_t; })* RP { return params; }
+			/ SHARP LP RP { return null; };
+		template_param<TemplateParamNode> =
+			  IDENTIFIER:id { return new TemplateParamNode(id.location, id.text); }
+			/ restricted_type:rt { return new TemplateParamNode(rt.location, rt); }
+			/ expression:e { return new TemplateParamNode(e.location, e); };
 		single_types<TypeNode> =
 			  AUTO:a { return new InferenceTypeNode(a.location); }
 			/ single_restricted_type:srt { return srt; };
@@ -340,6 +402,7 @@ import com.cterm2.ml.syntaxTree;
 		# package paths #
 		import_list = import_item (COMMA import_item)*;
 		import_item = IDENTIFIER (PERIOD IDENTIFIER)* [PERIOD ASTERISK / PERIOD LB import_list RB];
-		package_id = IDENTIFIER (PERIOD IDENTIFIER)*;
+		package_id<Token[]> = { Token[] ids; }
+			IDENTIFIER:t { ids ~= t; } (PERIOD IDENTIFIER:t2 { ids ~= t2; })* { return ids; };
 	}
 }

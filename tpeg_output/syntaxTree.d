@@ -76,12 +76,12 @@ final class TemplateInstanceTypeNode : TypeNode
 {
     Location loc;
     string template_name;
-    TypeNode[] _types;
+    TemplateParamNode[] _types;
 
     public override @property Location location(){ return this.loc; }
     public @property templateName(){ return this.template_name; }
     public @property types(){ return this._types; }
-    public this(Location l, string tn, TypeNode[] ts)
+    public this(Location l, string tn, TemplateParamNode[] ts)
     {
         this.loc = l;
         this.template_name = tn;
@@ -112,7 +112,7 @@ final class TypeofNode : TypeNode
     union
     {
         ExpressionNode _expr;
-        RestrictedTypeNode _type;
+        TypeNode _type;
     }
 
     public override @property Location location(){ return this.loc; }
@@ -125,7 +125,7 @@ final class TypeofNode : TypeNode
         this._expr = e;
         this.is_expr_inferencing = true;
     }
-    public this(Location l, RestrictedTypeNode t)
+    public this(Location l, TypeNode t)
     {
         this.loc = l;
         this._type = t;
@@ -178,7 +178,7 @@ final class QualifiedTypeNode : TypeNode
     public override @property Location location(){ return this.qual.location; }
     public @property qualifier(){ return this.qual; }
     public @property baseType(){ return this.base_type; }
-    public this(Qualifier q, TYpeNode bt)
+    public this(Qualifier q, TypeNode bt)
     {
         this.qual = q;
         this.base_type = bt;
@@ -207,6 +207,153 @@ final class VirtualParamNode : NodeBase
         this.is_variadic = iv;
     }
 }
+final class TemplateVirtualParamNode : NodeBase
+{
+    public final enum ParamType
+    {
+        Any, Class, SymbolAlias, Type
+    }
+
+    Location loc;
+    ParamType param_type;
+    TypeNode spec_type;
+    string _name;
+    TypeNode default_value;
+
+    public override @property Location location(){ return this.loc; }
+    public @property paramType(){ return this.param_type; }
+    public @property specType(){ return this.spec_type; }
+    public @property name(){ return this._name; }
+    public @property defaultValue(){ return this.default_value; }
+    public this(Location l, ParamType pt, string n)
+    {
+        this.loc = l;
+        this.param_type = pt;
+        this.spec_type = null;
+        this._name = n;
+    }
+    public this(Location l, ParamType pt, TypeNode t, string n)
+    {
+        this.loc = l;
+        this.param_type = pt;
+        this.spec_type = t;
+        this._name = n;
+    }
+    public this(typeof(this) base, TypeNode dv)
+    {
+        this.loc = base.location;
+        this.param_type = base.paramType;
+        this.spec_type = base.specType;
+        this._name = base.name;
+        this.default_value = dv;
+    }
+}
+final class TemplateParamNode : NodeBase
+{
+    Location loc;
+    TypeNode type_name;
+    string id;
+    ExpressionNode _expression;
+
+    public override @property Location location(){ return this.loc; }
+    public @property typeName(){ return this.type_name; }
+    public @property symbolName(){ return this.id; }
+    public @property expression(){ return this._expression; }
+
+    public this(Location l, TypeNode t)
+    {
+        this.loc = l;
+        this.type_name = t;
+    }
+    public this(Location l, string i)
+    {
+        this.loc = l;
+        this.id = i;
+    }
+    public this(Location l, ExpressionNode e)
+    {
+        this.loc = l;
+        this._expression = e;
+    }
+}
+final class DefinitionIdentifierParamNode : NodeBase
+{
+    Location loc;
+    string _name;
+    TypeNode default_value, extended_from, castable_to;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+    public @property defaultValue(){ return this.default_value; }
+    public @property extendedFrom(){ return this.extended_from; }
+    public @property castableTo(){ return this.castable_to; }
+
+    public this(Location l, string n)
+    {
+        // initial
+        this.loc = l;
+        this._name = n;
+    }
+    public auto clone()
+    {
+        auto dp = new DefinitionIdentifierParamNode(this.location, this.name);
+        dp.default_value = this.defaultValue;
+        dp.extended_from = this.extendedFrom;
+        dp.castable_to = this.castableTo;
+        return dp;
+    }
+    public auto withDefaultValue(TypeNode t)
+    {
+        auto obj = this.clone();
+        obj.default_value = t;
+        return obj;
+    }
+    public auto withExtendedFrom(TypeNode t)
+    {
+        auto obj = this.clone();
+        obj.extended_from = t;
+        return obj;
+    }
+    public auto withCastableTo(TypeNode t)
+    {
+        auto obj = this.clone();
+        obj.castable_to = t;
+        return obj;
+    }
+}
+final class DefinitionIdentifierNode : NodeBase
+{
+    Location loc;
+    string _name;
+    DefinitionIdentifierParamNode[] _params;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this.name; }
+    public @property params(){ return this._params; }
+    public @property hasParameter(){ return this._params !is null; }
+
+    public this(Location l, string n, DefinitionIdentifierParamNode[] ps)
+    {
+        this.loc = l;
+        this._name = n;
+        this._params = ps;
+    }
+}
+final class AssocArrayElementNode : ExpressionNode
+{
+    ExpressionNode[2] _expressions;
+
+    invariant { assert(this._expressions !is null); }
+
+    public override @property Location location(){ return this._expressions[0].location; }
+    public @property keyExpression(){ return this._expressions[0]; }
+    public @property valueExpression(){ return this._expressions[1]; }
+
+    public this(ExpressionNode key, ExpressionNode val)
+    {
+        this._expressions = [key, val];
+    }
+}
 
 // Super Literals //
 alias ThisReferenceNode = NonvalueLiteralNode;
@@ -224,5 +371,93 @@ alias CharacterLiteralNode = SingleValueLiteralNode!char;
 final class FunctionLiteralNode : ExpressionNode
 {
     Location loc;
+    VirtualParamNode[] _vparams;
+    StatementNode[] _stmt;
+    ExpressionNode[] _expr;
 
+    invariant { assert((this._stmt !is null) != (this._expr !is null)); }
+
+    public override @property Location location(){ return this.loc; }
+    public @property vparams(){ return this._vparams; }
+    public @property statement(){ return this._stmt; }
+    public @property expression(){ return this._expr; }
+    public @property isPure(){ return this._stmt is null; }
+
+    public this(Location l, VirtualParamNode[] vps, StatementNode st)
+    {
+        this.loc = l;
+        this._vparams = vps;
+        this._stmt = st;
+    }
+    public this(Location l, VirtualParamNode[] vps, ExpressionNode ex)
+    {
+        this.loc = l;
+        this._vparams = vps;
+        this._expr = ex;
+    }
+    public this(VirtualParamNode vp, ExpressionNode ex)
+    {
+        this.loc = vp.location;
+        this._vparams = [vp];
+        this._expr = ex;
+    }
+}
+final class ArrayLiteralNode : ExpressionNode
+{
+    Location loc;
+    ExpressionNode[] elist;
+
+    public override @property Location location(){ return this.loc; }
+    public @property expressions(){ return this.elist; }
+
+    public this(Location l, ExpressionNode[] el)
+    {
+        this.loc = l;
+        this.elist = el;
+    }
+}
+final class AssocArrayLiteralNode : ExpressionNode
+{
+    Location loc;
+    AssocArrayElementNode[] elist;
+
+    public override @property Location location(){ return this.loc; }
+    public @property elements(){ return this.elist; }
+
+    public this(Location l, AssocArrayElementNode[] el)
+    {
+        this.loc = l;
+        this.elist = el;
+    }
+}
+final class TemplateInstantiateNode : ExpressionNode
+{
+    Location loc;
+    string template_name;
+    TemplateParamNode[] _params;
+
+    public override @property Location location(){ return this.loc; }
+    public @property templateName(){ return this.template_name; }
+    public @property params(){ return this._params; }
+
+    public this(Location l, string tn, TemplateParamNode[] ps)
+    {
+        this.loc = l;
+        this.template_name = tn;
+        this._params = ps;
+    }
+}
+final class IdentifierReferenceNode : ExpressionNode
+{
+    Location loc;
+    string ref_name;
+
+    public override @property Location location(){ return this.loc; }
+    public @property refName(){ return this.ref_name; }
+
+    public this(Location l, string rn)
+    {
+        this.loc = l;
+        this.ref_name = rn;
+    }
 }

@@ -689,7 +689,7 @@ class ParserGenerator : IVisitor
             }
             else
             {
-                this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto ", node.binderName, " = (cast(TokenTree)(", this.referenceStack.join("."), ")).token.text;");
+                this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto ", node.binderName, " = (cast(TokenTree)(", this.referenceStack.join("."), ")).token;");
             }
         }
         public void visit(Action node)
