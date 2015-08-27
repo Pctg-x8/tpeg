@@ -674,7 +674,7 @@ class ParserGenerator : IVisitor
             this.switchingStack ~= true;
             foreach(i, n; node.innerTrees)
             {
-                this.partialConditionalOrdinal = i;
+                this.partialConditionalOrdinal = cast(uint)i;
                 n.accept(this);
             }
             this.switchingStack.popBack();

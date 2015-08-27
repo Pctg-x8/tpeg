@@ -213,7 +213,7 @@ public auto tokenizeStr(string fileData)
 			{
 				if(a.isPerfectMatch && !b.isPerfectMatch) return a;
 				else if(!a.isPerfectMatch && b.isPerfectMatch) return b;
-				else return a; /* prior first object */
+				else throw new TokenizeError("Conflicting patterns", loc);
 			}
 			return a.length > b.length ? a : b;
 		});
@@ -222,7 +222,8 @@ public auto tokenizeStr(string fileData)
 		{
 			tokenList ~= new Token(loc, longest_match.itype, longest_match.matchStr);
 		}
-		auto lines = longest_match.matchStr.split(ctRegex!r"\n");
+		auto lines = longest_match.matchStr.split(ctRegex!r"
+");
 		foreach(a; lines[0 .. $ - 1])
 		{
 			loc.col = 1;

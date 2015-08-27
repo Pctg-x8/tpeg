@@ -3,9 +3,6 @@ module com.cterm2.ml.parser;
 import com.cterm2.ml.lexer;
 import std.array, std.algorithm;
 
-// Header part from user tpeg file //
-import com.cterm2.ml.syntaxTree;
-
 public struct TokenIterator
 {
 	size_t pos;
@@ -7226,7 +7223,7 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential206
 	{
-		// id=<Sequential:<false:false:COMMA:>,<true:true:varg:v>,<Action: tlist ~= v >>
+		// id=<Sequential:<false:false:COMMA:>,<false:true:varg:>>
 		private alias PartialTreeType = PartialTree!206;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
@@ -7256,7 +7253,7 @@ public class Grammar
 	}
 	private static class ComplexParser_LoopQualified207
 	{
-		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:varg:v>,<Action: tlist ~= v >>>
+		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:varg:>>>
 		private alias PartialTreeType = PartialTree!207;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
@@ -7278,7 +7275,7 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential208
 	{
-		// id=<Sequential:<true:true:varg:t>,<Action: auto tlist = [t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:varg:v>,<Action: tlist ~= v >>>,<Action: return tlist; >>
+		// id=<Sequential:<false:true:varg:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:varg:>>>>
 		private alias PartialTreeType = PartialTree!208;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
@@ -7306,110 +7303,50 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private alias ElementParser_PERIOD3 = ElementParser!(EnumTokenType.PERIOD3);
-	private static class ComplexParser_Sequential209
+	private static class ComplexParser_Skippable209
 	{
-		// id=<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:EQUAL:>,<true:true:expression:dv>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, n.text, dv, true); >>
+		// id=<Skippable:<Sequential:<false:false:IDENTIFIER:>,<Skippable:<Sequential:<false:false:EQUAL:>,<false:true:expression:>>>>>
 		private alias PartialTreeType = PartialTree!209;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type.parse(r);
-			if(resTemp.failed)
+			auto result = ComplexParser_Sequential63.parse(r);
+			if(result.failed)
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, r, r, new PartialTreeType(null));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_IDENTIFIER.parse(r);
-			if(resTemp.failed)
+			else
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_EQUAL.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = expression.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_PERIOD3.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential210
+	private alias ElementParser_PERIOD3 = ElementParser!(EnumTokenType.PERIOD3);
+	private static class ComplexParser_Skippable210
 	{
-		// id=<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:EQUAL:>,<true:true:expression:dv>,<Action: return new VirtualParamNode(t, n.text, dv, false); >>
+		// id=<Skippable:<false:false:PERIOD3:>>
 		private alias PartialTreeType = PartialTree!210;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type.parse(r);
-			if(resTemp.failed)
+			auto result = ElementParser_PERIOD3.parse(r);
+			if(result.failed)
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, r, r, new PartialTreeType(null));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_IDENTIFIER.parse(r);
-			if(resTemp.failed)
+			else
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_EQUAL.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = expression.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
 	private static class ComplexParser_Sequential211
 	{
-		// id=<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, n.text, null, true); >>
+		// id=<Sequential:<false:true:type:>,<Skippable:<Sequential:<false:false:IDENTIFIER:>,<Skippable:<Sequential:<false:false:EQUAL:>,<false:true:expression:>>>>>,<Skippable:<false:false:PERIOD3:>>>
 		private alias PartialTreeType = PartialTree!211;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
@@ -7427,7 +7364,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ElementParser_IDENTIFIER.parse(r);
+			resTemp = ComplexParser_Skippable209.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -7435,7 +7372,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ElementParser_PERIOD3.parse(r);
+			resTemp = ComplexParser_Skippable210.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -7447,146 +7384,8 @@ public class Grammar
 	}
 	private static class ComplexParser_Sequential212
 	{
-		// id=<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<Action: return new VirtualParamNode(t, n.text, null, false); >>
-		private alias PartialTreeType = PartialTree!212;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_IDENTIFIER.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential213
-	{
-		// id=<Sequential:<true:true:type:t>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, null, null, true); >>
-		private alias PartialTreeType = PartialTree!213;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_PERIOD3.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential214
-	{
-		// id=<Sequential:<true:true:type:t>,<Action: return new VirtualParamNode(t, null, null, false); >>
-		private alias PartialTreeType = PartialTree!214;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching215
-	{
-		// id=<Switch:<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:EQUAL:>,<true:true:expression:dv>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, n.text, dv, true); >>,<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:EQUAL:>,<true:true:expression:dv>,<Action: return new VirtualParamNode(t, n.text, dv, false); >>,<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, n.text, null, true); >>,<Sequential:<true:true:type:t>,<true:false:IDENTIFIER:n>,<Action: return new VirtualParamNode(t, n.text, null, false); >>,<Sequential:<true:true:type:t>,<false:false:PERIOD3:>,<Action: return new VirtualParamNode(t, null, null, true); >>,<Sequential:<true:true:type:t>,<Action: return new VirtualParamNode(t, null, null, false); >>>
-		private alias PartialTreeType = PartialTree!215;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential209.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential210.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential211.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential212.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential213.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential214.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
-		}
-	}
-	private static class ComplexParser_Sequential216
-	{
 		// id=<Sequential:<false:false:COMMA:>,<false:true:literal_varg:>>
-		private alias PartialTreeType = PartialTree!216;
+		private alias PartialTreeType = PartialTree!212;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7613,10 +7412,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential217
+	private static class ComplexParser_Sequential213
 	{
 		// id=<Sequential:<false:true:literal_varg:>,<Sequential:<false:false:COMMA:>,<false:true:literal_varg:>>>
-		private alias PartialTreeType = PartialTree!217;
+		private alias PartialTreeType = PartialTree!213;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7633,7 +7432,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Sequential216.parse(r);
+			resTemp = ComplexParser_Sequential212.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -7643,30 +7442,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Skippable218
-	{
-		// id=<Skippable:<false:false:PERIOD3:>>
-		private alias PartialTreeType = PartialTree!218;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			auto result = ElementParser_PERIOD3.parse(r);
-			if(result.failed)
-			{
-				return ResultType(true, r, r, new PartialTreeType(null));
-			}
-			else
-			{
-				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
-			}
-		}
-	}
-	private static class ComplexParser_Sequential219
+	private static class ComplexParser_Sequential214
 	{
 		// id=<Sequential:<Skippable:<false:true:type:>>,<false:false:IDENTIFIER:>,<Skippable:<Sequential:<false:false:EQUAL:>,<false:true:expression:>>>,<Skippable:<false:false:PERIOD3:>>>
-		private alias PartialTreeType = PartialTree!219;
+		private alias PartialTreeType = PartialTree!214;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7699,7 +7478,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Skippable218.parse(r);
+			resTemp = ComplexParser_Skippable210.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -7709,10 +7488,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential220
+	private static class ComplexParser_Sequential215
 	{
 		// id=<Sequential:<false:false:COMMA:>,<false:true:assoc_array_element:>>
-		private alias PartialTreeType = PartialTree!220;
+		private alias PartialTreeType = PartialTree!215;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7739,10 +7518,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_LoopQualified221
+	private static class ComplexParser_LoopQualified216
 	{
 		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:assoc_array_element:>>>
-		private alias PartialTreeType = PartialTree!221;
+		private alias PartialTreeType = PartialTree!216;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7752,7 +7531,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Sequential220.parse(r);
+				auto result = ComplexParser_Sequential215.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -7761,10 +7540,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential222
+	private static class ComplexParser_Sequential217
 	{
 		// id=<Sequential:<false:true:assoc_array_element:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:assoc_array_element:>>>>
-		private alias PartialTreeType = PartialTree!222;
+		private alias PartialTreeType = PartialTree!217;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7781,7 +7560,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified221.parse(r);
+			resTemp = ComplexParser_LoopQualified216.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -7791,10 +7570,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential223
+	private static class ComplexParser_Sequential218
 	{
 		// id=<Sequential:<false:true:expression:>,<false:false:COLON:>,<false:true:expression:>>
-		private alias PartialTreeType = PartialTree!223;
+		private alias PartialTreeType = PartialTree!218;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7830,131 +7609,43 @@ public class Grammar
 		}
 	}
 	private alias ElementParser_PUBLIC = ElementParser!(EnumTokenType.PUBLIC);
-	private static class ComplexParser_Sequential224
+	private alias ElementParser_PRIVATE = ElementParser!(EnumTokenType.PRIVATE);
+	private alias ElementParser_FINAL = ElementParser!(EnumTokenType.FINAL);
+	private alias ElementParser_STATIC = ElementParser!(EnumTokenType.STATIC);
+	private static class ComplexParser_Switching219
 	{
-		// id=<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>
-		private alias PartialTreeType = PartialTree!224;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>,<false:false:FINAL:>,<false:false:STATIC:>>
+		private alias PartialTreeType = PartialTree!219;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
 			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			TokenIterator[] errors;
 
 			resTemp = ElementParser_PUBLIC.parse(r);
-			if(resTemp.failed)
+			if(resTemp.succeeded)
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_PRIVATE = ElementParser!(EnumTokenType.PRIVATE);
-	private static class ComplexParser_Sequential225
-	{
-		// id=<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>
-		private alias PartialTreeType = PartialTree!225;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			errors ~= resTemp.iterError;
 
 			resTemp = ElementParser_PRIVATE.parse(r);
-			if(resTemp.failed)
+			if(resTemp.succeeded)
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_FINAL = ElementParser!(EnumTokenType.FINAL);
-	private static class ComplexParser_Sequential226
-	{
-		// id=<Sequential:<true:false:FINAL:t>,<Action: return Qualifier(t.location, Qualifiers.Final); >>
-		private alias PartialTreeType = PartialTree!226;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			errors ~= resTemp.iterError;
 
 			resTemp = ElementParser_FINAL.parse(r);
-			if(resTemp.failed)
+			if(resTemp.succeeded)
 			{
-				return ResultType(false, r, resTemp.iterError);
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_STATIC = ElementParser!(EnumTokenType.STATIC);
-	private static class ComplexParser_Sequential227
-	{
-		// id=<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>
-		private alias PartialTreeType = PartialTree!227;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			errors ~= resTemp.iterError;
 
 			resTemp = ElementParser_STATIC.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching228
-	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:FINAL:t>,<Action: return Qualifier(t.location, Qualifiers.Final); >>,<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>>
-		private alias PartialTreeType = PartialTree!228;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential224.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential225.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential226.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential227.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -7963,10 +7654,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Switching229
+	private static class ComplexParser_Switching220
 	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>>
-		private alias PartialTreeType = PartialTree!229;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>,<false:false:STATIC:>>
+		private alias PartialTreeType = PartialTree!220;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -7975,21 +7666,21 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential224.parse(r);
+			resTemp = ElementParser_PUBLIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential225.parse(r);
+			resTemp = ElementParser_PRIVATE.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential227.parse(r);
+			resTemp = ElementParser_STATIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -7998,10 +7689,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Switching230
+	private static class ComplexParser_Switching221
 	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>>
-		private alias PartialTreeType = PartialTree!230;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>>
+		private alias PartialTreeType = PartialTree!221;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8010,71 +7701,27 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential224.parse(r);
+			resTemp = ElementParser_PUBLIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential225.parse(r);
+			resTemp = ElementParser_PRIVATE.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
-		}
-	}
-	private static class ComplexParser_Sequential231
-	{
-		// id=<Sequential:<true:false:CONST:t>,<Action: return Qualifier(t.location, Qualifiers.Const); >>
-		private alias PartialTreeType = PartialTree!231;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_CONST.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
 	private alias ElementParser_PROTECTED = ElementParser!(EnumTokenType.PROTECTED);
-	private static class ComplexParser_Sequential232
+	private static class ComplexParser_Switching222
 	{
-		// id=<Sequential:<true:false:PROTECTED:t>,<Action: return Qualifier(t.location, Qualifiers.Protected); >>
-		private alias PartialTreeType = PartialTree!232;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_PROTECTED.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching233
-	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:PROTECTED:t>,<Action: return Qualifier(t.location, Qualifiers.Protected); >>,<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>,<Sequential:<true:false:FINAL:t>,<Action: return Qualifier(t.location, Qualifiers.Final); >>,<Sequential:<true:false:CONST:t>,<Action: return Qualifier(t.location, Qualifiers.Const); >>>
-		private alias PartialTreeType = PartialTree!233;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>,<false:false:PROTECTED:>,<false:false:STATIC:>,<false:false:FINAL:>,<false:false:CONST:>>
+		private alias PartialTreeType = PartialTree!222;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8083,42 +7730,42 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential224.parse(r);
+			resTemp = ElementParser_PUBLIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential225.parse(r);
+			resTemp = ElementParser_PRIVATE.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential232.parse(r);
+			resTemp = ElementParser_PROTECTED.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential227.parse(r);
+			resTemp = ElementParser_STATIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential226.parse(r);
+			resTemp = ElementParser_FINAL.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential231.parse(r);
+			resTemp = ElementParser_CONST.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8128,83 +7775,61 @@ public class Grammar
 		}
 	}
 	private alias ElementParser_OVERRIDE = ElementParser!(EnumTokenType.OVERRIDE);
-	private static class ComplexParser_Sequential234
+	private static class ComplexParser_Switching223
 	{
-		// id=<Sequential:<true:false:OVERRIDE:t>,<Action: return Qualifier(t.location, Qualifiers.Override); >>
-		private alias PartialTreeType = PartialTree!234;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>,<false:false:PROTECTED:>,<false:false:STATIC:>,<false:false:FINAL:>,<false:false:CONST:>,<false:false:OVERRIDE:>>
+		private alias PartialTreeType = PartialTree!223;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
 			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			TokenIterator[] errors;
+
+			resTemp = ElementParser_PUBLIC.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_PRIVATE.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_PROTECTED.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_STATIC.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_FINAL.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_CONST.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
 
 			resTemp = ElementParser_OVERRIDE.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching235
-	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:PROTECTED:t>,<Action: return Qualifier(t.location, Qualifiers.Protected); >>,<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>,<Sequential:<true:false:FINAL:t>,<Action: return Qualifier(t.location, Qualifiers.Final); >>,<Sequential:<true:false:CONST:t>,<Action: return Qualifier(t.location, Qualifiers.Const); >>,<Sequential:<true:false:OVERRIDE:t>,<Action: return Qualifier(t.location, Qualifiers.Override); >>>
-		private alias PartialTreeType = PartialTree!235;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential224.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential225.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential232.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential227.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential226.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential231.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential234.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8213,10 +7838,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Switching236
+	private static class ComplexParser_Switching224
 	{
-		// id=<Switch:<Sequential:<true:false:PUBLIC:t>,<Action: return Qualifier(t.location, Qualifiers.Public); >>,<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:PROTECTED:t>,<Action: return Qualifier(t.location, Qualifiers.Protected); >>,<Sequential:<true:false:CONST:t>,<Action: return Qualifier(t.location, Qualifiers.Const); >>>
-		private alias PartialTreeType = PartialTree!236;
+		// id=<Switch:<false:false:PUBLIC:>,<false:false:PRIVATE:>,<false:false:PROTECTED:>,<false:false:CONST:>>
+		private alias PartialTreeType = PartialTree!224;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8225,28 +7850,28 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential224.parse(r);
+			resTemp = ElementParser_PUBLIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential225.parse(r);
+			resTemp = ElementParser_PRIVATE.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential232.parse(r);
+			resTemp = ElementParser_PROTECTED.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential231.parse(r);
+			resTemp = ElementParser_CONST.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8255,10 +7880,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Switching237
+	private static class ComplexParser_Switching225
 	{
-		// id=<Switch:<Sequential:<true:false:PRIVATE:t>,<Action: return Qualifier(t.location, Qualifiers.Private); >>,<Sequential:<true:false:PROTECTED:t>,<Action: return Qualifier(t.location, Qualifiers.Protected); >>,<Sequential:<true:false:CONST:t>,<Action: return Qualifier(t.location, Qualifiers.Const); >>,<Sequential:<true:false:STATIC:t>,<Action: return Qualifier(t.location, Qualifiers.Static); >>>
-		private alias PartialTreeType = PartialTree!237;
+		// id=<Switch:<false:false:PRIVATE:>,<false:false:PROTECTED:>,<false:false:CONST:>,<false:false:STATIC:>>
+		private alias PartialTreeType = PartialTree!225;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8267,28 +7892,28 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential225.parse(r);
+			resTemp = ElementParser_PRIVATE.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential232.parse(r);
+			resTemp = ElementParser_PROTECTED.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential231.parse(r);
+			resTemp = ElementParser_CONST.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential227.parse(r);
+			resTemp = ElementParser_STATIC.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8297,10 +7922,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Skippable238
+	private static class ComplexParser_Skippable226
 	{
 		// id=<Skippable:<false:true:def_id_arg_list:>>
-		private alias PartialTreeType = PartialTree!238;
+		private alias PartialTreeType = PartialTree!226;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8317,10 +7942,10 @@ public class Grammar
 			}
 		}
 	}
-	private static class ComplexParser_Sequential239
+	private static class ComplexParser_Sequential227
 	{
 		// id=<Sequential:<false:false:LBR:>,<Skippable:<false:true:def_id_arg_list:>>,<false:false:RBR:>>
-		private alias PartialTreeType = PartialTree!239;
+		private alias PartialTreeType = PartialTree!227;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8337,7 +7962,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Skippable238.parse(r);
+			resTemp = ComplexParser_Skippable226.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8355,16 +7980,16 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Skippable240
+	private static class ComplexParser_Skippable228
 	{
 		// id=<Skippable:<Sequential:<false:false:LBR:>,<Skippable:<false:true:def_id_arg_list:>>,<false:false:RBR:>>>
-		private alias PartialTreeType = PartialTree!240;
+		private alias PartialTreeType = PartialTree!228;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
-			auto result = ComplexParser_Sequential239.parse(r);
+			auto result = ComplexParser_Sequential227.parse(r);
 			if(result.failed)
 			{
 				return ResultType(true, r, r, new PartialTreeType(null));
@@ -8375,10 +8000,10 @@ public class Grammar
 			}
 		}
 	}
-	private static class ComplexParser_Sequential241
+	private static class ComplexParser_Sequential229
 	{
 		// id=<Sequential:<false:false:IDENTIFIER:>,<Skippable:<Sequential:<false:false:LBR:>,<Skippable:<false:true:def_id_arg_list:>>,<false:false:RBR:>>>>
-		private alias PartialTreeType = PartialTree!241;
+		private alias PartialTreeType = PartialTree!229;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8395,7 +8020,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Skippable240.parse(r);
+			resTemp = ComplexParser_Skippable228.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8405,10 +8030,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential242
+	private static class ComplexParser_Sequential230
 	{
 		// id=<Sequential:<false:false:COMMA:>,<false:true:def_id_arg:>>
-		private alias PartialTreeType = PartialTree!242;
+		private alias PartialTreeType = PartialTree!230;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8435,10 +8060,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_LoopQualified243
+	private static class ComplexParser_LoopQualified231
 	{
 		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:def_id_arg:>>>
-		private alias PartialTreeType = PartialTree!243;
+		private alias PartialTreeType = PartialTree!231;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8448,7 +8073,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Sequential242.parse(r);
+				auto result = ComplexParser_Sequential230.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -8457,10 +8082,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential244
+	private static class ComplexParser_Sequential232
 	{
 		// id=<Sequential:<false:true:def_id_arg:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:def_id_arg:>>>>
-		private alias PartialTreeType = PartialTree!244;
+		private alias PartialTreeType = PartialTree!232;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8477,7 +8102,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified243.parse(r);
+			resTemp = ComplexParser_LoopQualified231.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8487,10 +8112,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential245
+	private static class ComplexParser_Sequential233
 	{
 		// id=<Sequential:<false:false:COLON:>,<false:true:type:>>
-		private alias PartialTreeType = PartialTree!245;
+		private alias PartialTreeType = PartialTree!233;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8517,10 +8142,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential246
+	private static class ComplexParser_Sequential234
 	{
 		// id=<Sequential:<false:false:RARROW:>,<false:true:type:>>
-		private alias PartialTreeType = PartialTree!246;
+		private alias PartialTreeType = PartialTree!234;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8547,10 +8172,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Switching247
+	private static class ComplexParser_Switching235
 	{
 		// id=<Switch:<Sequential:<false:false:EQUAL:>,<false:true:type:>>,<Sequential:<false:false:COLON:>,<false:true:type:>>,<Sequential:<false:false:RARROW:>,<false:true:type:>>>
-		private alias PartialTreeType = PartialTree!247;
+		private alias PartialTreeType = PartialTree!235;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8566,14 +8191,14 @@ public class Grammar
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential245.parse(r);
+			resTemp = ComplexParser_Sequential233.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential246.parse(r);
+			resTemp = ComplexParser_Sequential234.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8582,10 +8207,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_LoopQualified248
+	private static class ComplexParser_LoopQualified236
 	{
 		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:EQUAL:>,<false:true:type:>>,<Sequential:<false:false:COLON:>,<false:true:type:>>,<Sequential:<false:false:RARROW:>,<false:true:type:>>>>
-		private alias PartialTreeType = PartialTree!248;
+		private alias PartialTreeType = PartialTree!236;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8595,7 +8220,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Switching247.parse(r);
+				auto result = ComplexParser_Switching235.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -8604,10 +8229,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential249
+	private static class ComplexParser_Sequential237
 	{
 		// id=<Sequential:<false:false:IDENTIFIER:>,<LoopQualified:false:<Switch:<Sequential:<false:false:EQUAL:>,<false:true:type:>>,<Sequential:<false:false:COLON:>,<false:true:type:>>,<Sequential:<false:false:RARROW:>,<false:true:type:>>>>>
-		private alias PartialTreeType = PartialTree!249;
+		private alias PartialTreeType = PartialTree!237;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8624,7 +8249,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified248.parse(r);
+			resTemp = ComplexParser_LoopQualified236.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8634,32 +8259,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential250
+	private static class ComplexParser_LoopQualified238
 	{
-		// id=<Sequential:<true:true:type_qualifier:tqq>,<Action: tq = tq.combine(tqq); hasQualifier = true; >>
-		private alias PartialTreeType = PartialTree!250;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = type_qualifier.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_LoopQualified251
-	{
-		// id=<LoopQualified:false:<Sequential:<true:true:type_qualifier:tqq>,<Action: tq = tq.combine(tqq); hasQualifier = true; >>>
-		private alias PartialTreeType = PartialTree!251;
+		// id=<LoopQualified:false:<false:true:type_qualifier:>>
+		private alias PartialTreeType = PartialTree!238;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8669,7 +8272,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Sequential250.parse(r);
+				auto result = type_qualifier.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -8678,10 +8281,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential252
+	private static class ComplexParser_Sequential239
 	{
-		// id=<Sequential:<Action: auto tq = Qualifier(Location(int.max, int.max), 0); bool hasQualifier = false; >,<LoopQualified:false:<Sequential:<true:true:type_qualifier:tqq>,<Action: tq = tq.combine(tqq); hasQualifier = true; >>>,<true:true:type_body:tb>,<Action: return hasQualifier ? new QualifiedTypeNode(tq, tb) : tb; >>
-		private alias PartialTreeType = PartialTree!252;
+		// id=<Sequential:<LoopQualified:false:<false:true:type_qualifier:>>,<false:true:type_body:>>
+		private alias PartialTreeType = PartialTree!239;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8690,7 +8293,7 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			ISyntaxTree[] treeList;
 
-			resTemp = ComplexParser_LoopQualified251.parse(r);
+			resTemp = ComplexParser_LoopQualified238.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8708,94 +8311,11 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential253
+	private alias ElementParser_AUTO = ElementParser!(EnumTokenType.AUTO);
+	private static class ComplexParser_Switching240
 	{
-		// id=<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<true:true:varg_list:vpl>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, vpl); >>
-		private alias PartialTreeType = PartialTree!253;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_FUNCTION.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_LP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = varg_list.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential254
-	{
-		// id=<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, null); >>
-		private alias PartialTreeType = PartialTree!254;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_FUNCTION.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_LP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching255
-	{
-		// id=<Switch:<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<true:true:varg_list:vpl>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, vpl); >>,<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, null); >>>
-		private alias PartialTreeType = PartialTree!255;
+		// id=<Switch:<false:false:AUTO:>,<false:true:restricted_type:>>
+		private alias PartialTreeType = PartialTree!240;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8804,14 +8324,14 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential253.parse(r);
+			resTemp = ElementParser_AUTO.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential254.parse(r);
+			resTemp = restricted_type.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -8820,16 +8340,62 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Skippable256
+	private static class ComplexParser_Sequential241
 	{
-		// id=<Skippable:<Switch:<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<true:true:varg_list:vpl>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, vpl); >>,<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, null); >>>>
-		private alias PartialTreeType = PartialTree!256;
+		// id=<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<Skippable:<false:true:varg_list:>>,<false:false:RP:>>
+		private alias PartialTreeType = PartialTree!241;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
-			auto result = ComplexParser_Switching255.parse(r);
+			Result!ISyntaxTree resTemp;
+			ISyntaxTree[] treeList;
+
+			resTemp = ElementParser_FUNCTION.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ElementParser_LP.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ComplexParser_Skippable69.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ElementParser_RP.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
+		}
+	}
+	private static class ComplexParser_Skippable242
+	{
+		// id=<Skippable:<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<Skippable:<false:true:varg_list:>>,<false:false:RP:>>>
+		private alias PartialTreeType = PartialTree!242;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			auto result = ComplexParser_Sequential241.parse(r);
 			if(result.failed)
 			{
 				return ResultType(true, r, r, new PartialTreeType(null));
@@ -8840,10 +8406,10 @@ public class Grammar
 			}
 		}
 	}
-	private static class ComplexParser_Sequential257
+	private static class ComplexParser_Sequential243
 	{
-		// id=<Sequential:<true:true:type_body_base:tbb>,<Skippable:<Switch:<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<true:true:varg_list:vpl>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, vpl); >>,<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<false:false:RP:>,<Action: tbb = new FunctionTypeNode(tbb, null); >>>>,<Action: return tbb; >>
-		private alias PartialTreeType = PartialTree!257;
+		// id=<Sequential:<Switch:<false:false:AUTO:>,<false:true:restricted_type:>>,<Skippable:<Sequential:<false:false:FUNCTION:>,<false:false:LP:>,<Skippable:<false:true:varg_list:>>,<false:false:RP:>>>>
+		private alias PartialTreeType = PartialTree!243;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -8852,7 +8418,7 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			ISyntaxTree[] treeList;
 
-			resTemp = type_body_base.parse(r);
+			resTemp = ComplexParser_Switching240.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8860,7 +8426,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Skippable256.parse(r);
+			resTemp = ComplexParser_Skippable242.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -8870,179 +8436,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private alias ElementParser_AUTO = ElementParser!(EnumTokenType.AUTO);
-	private static class ComplexParser_Sequential258
+	private static class ComplexParser_LoopQualified244
 	{
-		// id=<Sequential:<true:false:AUTO:a>,<Action: return new InferenceTypeNode(a.location); >>
-		private alias PartialTreeType = PartialTree!258;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_AUTO.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential259
-	{
-		// id=<Sequential:<true:true:restricted_type:rt>,<Action: return rt; >>
-		private alias PartialTreeType = PartialTree!259;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = restricted_type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching260
-	{
-		// id=<Switch:<Sequential:<true:false:AUTO:a>,<Action: return new InferenceTypeNode(a.location); >>,<Sequential:<true:true:restricted_type:rt>,<Action: return rt; >>>
-		private alias PartialTreeType = PartialTree!260;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential258.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential259.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
-		}
-	}
-	private static class ComplexParser_Sequential261
-	{
-		// id=<Sequential:<false:false:LBR:>,<true:true:expression:e>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, e); >>
-		private alias PartialTreeType = PartialTree!261;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_LBR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = expression.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RBR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential262
-	{
-		// id=<Sequential:<false:false:LBR:>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, null); >>
-		private alias PartialTreeType = PartialTree!262;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_LBR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RBR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching263
-	{
-		// id=<Switch:<Sequential:<false:false:LBR:>,<true:true:expression:e>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, e); >>,<Sequential:<false:false:LBR:>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, null); >>>
-		private alias PartialTreeType = PartialTree!263;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential261.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential262.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
-		}
-	}
-	private static class ComplexParser_LoopQualified264
-	{
-		// id=<LoopQualified:false:<Switch:<Sequential:<false:false:LBR:>,<true:true:expression:e>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, e); >>,<Sequential:<false:false:LBR:>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, null); >>>>
-		private alias PartialTreeType = PartialTree!264;
+		// id=<LoopQualified:false:<Sequential:<false:false:LBR:>,<Skippable:<false:true:expression:>>,<false:false:RBR:>>>
+		private alias PartialTreeType = PartialTree!244;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9052,7 +8449,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Switching263.parse(r);
+				auto result = ComplexParser_Sequential172.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -9061,10 +8458,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential265
+	private static class ComplexParser_Sequential245
 	{
-		// id=<Sequential:<true:true:primitive_types:pt>,<LoopQualified:false:<Switch:<Sequential:<false:false:LBR:>,<true:true:expression:e>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, e); >>,<Sequential:<false:false:LBR:>,<false:false:RBR:>,<Action: pt = new ArrayTypeNode(pt, null); >>>>,<Action: return pt; >>
-		private alias PartialTreeType = PartialTree!265;
+		// id=<Sequential:<false:true:primitive_types:>,<LoopQualified:false:<Sequential:<false:false:LBR:>,<Skippable:<false:true:expression:>>,<false:false:RBR:>>>>
+		private alias PartialTreeType = PartialTree!245;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9081,7 +8478,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified264.parse(r);
+			resTemp = ComplexParser_LoopQualified244.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -9091,76 +8488,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential266
+	private static class ComplexParser_Switching246
 	{
-		// id=<Sequential:<true:true:register_types:rt>,<Action: return rt; >>
-		private alias PartialTreeType = PartialTree!266;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = register_types.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential267
-	{
-		// id=<Sequential:<true:true:template_instance:ti>,<Action: return ti; >>
-		private alias PartialTreeType = PartialTree!267;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = template_instance.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential268
-	{
-		// id=<Sequential:<true:true:__typeof:to>,<Action: return to; >>
-		private alias PartialTreeType = PartialTree!268;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = __typeof.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching269
-	{
-		// id=<Switch:<Sequential:<true:true:register_types:rt>,<Action: return rt; >>,<Sequential:<true:true:template_instance:ti>,<Action: return ti; >>,<Sequential:<true:true:__typeof:to>,<Action: return to; >>>
-		private alias PartialTreeType = PartialTree!269;
+		// id=<Switch:<false:true:register_types:>,<false:true:template_instance:>,<false:true:__typeof:>>
+		private alias PartialTreeType = PartialTree!246;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9169,21 +8500,21 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential266.parse(r);
+			resTemp = register_types.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential267.parse(r);
+			resTemp = template_instance.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential268.parse(r);
+			resTemp = __typeof.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -9193,70 +8524,10 @@ public class Grammar
 		}
 	}
 	private alias ElementParser_TYPEOF = ElementParser!(EnumTokenType.TYPEOF);
-	private static class ComplexParser_Sequential270
+	private static class ComplexParser_Switching247
 	{
-		// id=<Sequential:<true:true:expression:e>,<false:false:RP:>,<Action: return new TypeofNode(f.location, e); >>
-		private alias PartialTreeType = PartialTree!270;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = expression.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential271
-	{
-		// id=<Sequential:<true:true:restricted_type:rt>,<false:false:RP:>,<Action: return new TypeofNode(f.location, rt); >>
-		private alias PartialTreeType = PartialTree!271;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = restricted_type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ElementParser_RP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching272
-	{
-		// id=<Switch:<Sequential:<true:true:expression:e>,<false:false:RP:>,<Action: return new TypeofNode(f.location, e); >>,<Sequential:<true:true:restricted_type:rt>,<false:false:RP:>,<Action: return new TypeofNode(f.location, rt); >>>
-		private alias PartialTreeType = PartialTree!272;
+		// id=<Switch:<false:true:expression:>,<false:true:restricted_type:>>
+		private alias PartialTreeType = PartialTree!247;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9265,14 +8536,14 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential270.parse(r);
+			resTemp = expression.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential271.parse(r);
+			resTemp = restricted_type.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -9281,10 +8552,30 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Sequential273
+	private static class ComplexParser_Skippable248
 	{
-		// id=<Sequential:<true:false:TYPEOF:f>,<false:false:LP:>,<Switch:<Sequential:<true:true:expression:e>,<false:false:RP:>,<Action: return new TypeofNode(f.location, e); >>,<Sequential:<true:true:restricted_type:rt>,<false:false:RP:>,<Action: return new TypeofNode(f.location, rt); >>>>
-		private alias PartialTreeType = PartialTree!273;
+		// id=<Skippable:<Switch:<false:true:expression:>,<false:true:restricted_type:>>>
+		private alias PartialTreeType = PartialTree!248;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			auto result = ComplexParser_Switching247.parse(r);
+			if(result.failed)
+			{
+				return ResultType(true, r, r, new PartialTreeType(null));
+			}
+			else
+			{
+				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
+			}
+		}
+	}
+	private static class ComplexParser_Sequential249
+	{
+		// id=<Sequential:<false:false:TYPEOF:>,<false:false:LP:>,<Skippable:<Switch:<false:true:expression:>,<false:true:restricted_type:>>>,<false:false:RP:>>
+		private alias PartialTreeType = PartialTree!249;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9309,548 +8600,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Switching272.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_VOID = ElementParser!(EnumTokenType.VOID);
-	private static class ComplexParser_Sequential274
-	{
-		// id=<Sequential:<true:false:VOID:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Void); >>
-		private alias PartialTreeType = PartialTree!274;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_VOID.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_CHAR = ElementParser!(EnumTokenType.CHAR);
-	private static class ComplexParser_Sequential275
-	{
-		// id=<Sequential:<true:false:CHAR:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Char); >>
-		private alias PartialTreeType = PartialTree!275;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_CHAR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_UCHAR = ElementParser!(EnumTokenType.UCHAR);
-	private static class ComplexParser_Sequential276
-	{
-		// id=<Sequential:<true:false:UCHAR:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uchar); >>
-		private alias PartialTreeType = PartialTree!276;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_UCHAR.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_BYTE = ElementParser!(EnumTokenType.BYTE);
-	private static class ComplexParser_Sequential277
-	{
-		// id=<Sequential:<true:false:BYTE:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Byte); >>
-		private alias PartialTreeType = PartialTree!277;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_BYTE.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_SHORT = ElementParser!(EnumTokenType.SHORT);
-	private static class ComplexParser_Sequential278
-	{
-		// id=<Sequential:<true:false:SHORT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Short); >>
-		private alias PartialTreeType = PartialTree!278;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_SHORT.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_USHORT = ElementParser!(EnumTokenType.USHORT);
-	private static class ComplexParser_Sequential279
-	{
-		// id=<Sequential:<true:false:USHORT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ushort); >>
-		private alias PartialTreeType = PartialTree!279;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_USHORT.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_INT = ElementParser!(EnumTokenType.INT);
-	private static class ComplexParser_Sequential280
-	{
-		// id=<Sequential:<true:false:INT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Int); >>
-		private alias PartialTreeType = PartialTree!280;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_INT.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_UINT = ElementParser!(EnumTokenType.UINT);
-	private static class ComplexParser_Sequential281
-	{
-		// id=<Sequential:<true:false:UINT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uint); >>
-		private alias PartialTreeType = PartialTree!281;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_UINT.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_LONG = ElementParser!(EnumTokenType.LONG);
-	private static class ComplexParser_Sequential282
-	{
-		// id=<Sequential:<true:false:LONG:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Long); >>
-		private alias PartialTreeType = PartialTree!282;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_LONG.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_ULONG = ElementParser!(EnumTokenType.ULONG);
-	private static class ComplexParser_Sequential283
-	{
-		// id=<Sequential:<true:false:ULONG:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ulong); >>
-		private alias PartialTreeType = PartialTree!283;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_ULONG.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching284
-	{
-		// id=<Switch:<Sequential:<true:false:VOID:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Void); >>,<Sequential:<true:false:CHAR:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Char); >>,<Sequential:<true:false:UCHAR:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uchar); >>,<Sequential:<true:false:BYTE:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Byte); >>,<Sequential:<true:false:SHORT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Short); >>,<Sequential:<true:false:USHORT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ushort); >>,<Sequential:<true:false:INT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Int); >>,<Sequential:<true:false:UINT:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uint); >>,<Sequential:<true:false:LONG:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Long); >>,<Sequential:<true:false:ULONG:t>,<Action: return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ulong); >>>
-		private alias PartialTreeType = PartialTree!284;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential274.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential275.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential276.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential277.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential278.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential279.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential280.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential281.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential282.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential283.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
-		}
-	}
-	private static class ComplexParser_Sequential285
-	{
-		// id=<Sequential:<true:true:template_tail:v>,<Action: return new TemplateInstanceTypeNode(t.location, t.text, v); >>
-		private alias PartialTreeType = PartialTree!285;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = template_tail.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Skippable286
-	{
-		// id=<Skippable:<Sequential:<true:true:template_tail:v>,<Action: return new TemplateInstanceTypeNode(t.location, t.text, v); >>>
-		private alias PartialTreeType = PartialTree!286;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			auto result = ComplexParser_Sequential285.parse(r);
-			if(result.failed)
-			{
-				return ResultType(true, r, r, new PartialTreeType(null));
-			}
-			else
-			{
-				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
-			}
-		}
-	}
-	private static class ComplexParser_Sequential287
-	{
-		// id=<Sequential:<true:false:IDENTIFIER:t>,<Skippable:<Sequential:<true:true:template_tail:v>,<Action: return new TemplateInstanceTypeNode(t.location, t.text, v); >>>,<Action: return new TemplateInstanceNode(t.location, t.text, null); >>
-		private alias PartialTreeType = PartialTree!287;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_IDENTIFIER.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ComplexParser_Skippable286.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private alias ElementParser_SHARP = ElementParser!(EnumTokenType.SHARP);
-	private static class ComplexParser_Sequential288
-	{
-		// id=<Sequential:<true:true:single_types:st>,<Action: return [st]; >>
-		private alias PartialTreeType = PartialTree!288;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = single_types.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential289
-	{
-		// id=<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>
-		private alias PartialTreeType = PartialTree!289;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_COMMA.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = restricted_type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_LoopQualified290
-	{
-		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>
-		private alias PartialTreeType = PartialTree!290;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			ISyntaxTree[] treeList;
-			TokenIterator lastError;
-			while(true)
-			{
-				auto result = ComplexParser_Sequential289.parse(r);
-				lastError = result.iterError;
-				if(result.failed) break;
-				treeList ~= result.value;
-				r = result.iterNext;
-			}
-			return ResultType(true, r, lastError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential291
-	{
-		// id=<Sequential:<true:true:restricted_type:first_t>,<Action: auto types = [first_t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>>
-		private alias PartialTreeType = PartialTree!291;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = restricted_type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ComplexParser_LoopQualified290.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Skippable292
-	{
-		// id=<Skippable:<Sequential:<true:true:restricted_type:first_t>,<Action: auto types = [first_t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>>>
-		private alias PartialTreeType = PartialTree!292;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			auto result = ComplexParser_Sequential291.parse(r);
-			if(result.failed)
-			{
-				return ResultType(true, r, r, new PartialTreeType(null));
-			}
-			else
-			{
-				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
-			}
-		}
-	}
-	private static class ComplexParser_Sequential293
-	{
-		// id=<Sequential:<false:false:LP:>,<Skippable:<Sequential:<true:true:restricted_type:first_t>,<Action: auto types = [first_t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>>>,<false:false:RP:>,<Action: return types; >>
-		private alias PartialTreeType = PartialTree!293;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
-
-			resTemp = ElementParser_LP.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-
-			resTemp = ComplexParser_Skippable292.parse(r);
+			resTemp = ComplexParser_Skippable248.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -9868,10 +8618,20 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Switching294
+	private alias ElementParser_VOID = ElementParser!(EnumTokenType.VOID);
+	private alias ElementParser_CHAR = ElementParser!(EnumTokenType.CHAR);
+	private alias ElementParser_UCHAR = ElementParser!(EnumTokenType.UCHAR);
+	private alias ElementParser_BYTE = ElementParser!(EnumTokenType.BYTE);
+	private alias ElementParser_SHORT = ElementParser!(EnumTokenType.SHORT);
+	private alias ElementParser_USHORT = ElementParser!(EnumTokenType.USHORT);
+	private alias ElementParser_INT = ElementParser!(EnumTokenType.INT);
+	private alias ElementParser_UINT = ElementParser!(EnumTokenType.UINT);
+	private alias ElementParser_LONG = ElementParser!(EnumTokenType.LONG);
+	private alias ElementParser_ULONG = ElementParser!(EnumTokenType.ULONG);
+	private static class ComplexParser_Switching250
 	{
-		// id=<Switch:<Sequential:<true:true:single_types:st>,<Action: return [st]; >>,<Sequential:<false:false:LP:>,<Skippable:<Sequential:<true:true:restricted_type:first_t>,<Action: auto types = [first_t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>>>,<false:false:RP:>,<Action: return types; >>>
-		private alias PartialTreeType = PartialTree!294;
+		// id=<Switch:<false:false:VOID:>,<false:false:CHAR:>,<false:false:UCHAR:>,<false:false:BYTE:>,<false:false:SHORT:>,<false:false:USHORT:>,<false:false:INT:>,<false:false:UINT:>,<false:false:LONG:>,<false:false:ULONG:>>
+		private alias PartialTreeType = PartialTree!250;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9880,14 +8640,70 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential288.parse(r);
+			resTemp = ElementParser_VOID.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential293.parse(r);
+			resTemp = ElementParser_CHAR.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_UCHAR.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_BYTE.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_SHORT.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_USHORT.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_INT.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_UINT.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_LONG.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ElementParser_ULONG.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -9896,10 +8712,179 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Sequential295
+	private alias ElementParser_SHARP = ElementParser!(EnumTokenType.SHARP);
+	private static class ComplexParser_Sequential251
 	{
-		// id=<Sequential:<false:false:SHARP:>,<Switch:<Sequential:<true:true:single_types:st>,<Action: return [st]; >>,<Sequential:<false:false:LP:>,<Skippable:<Sequential:<true:true:restricted_type:first_t>,<Action: auto types = [first_t]; >,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<true:true:restricted_type:second_t>,<Action: types ~= second_t; >>>>>,<false:false:RP:>,<Action: return types; >>>>
-		private alias PartialTreeType = PartialTree!295;
+		// id=<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>
+		private alias PartialTreeType = PartialTree!251;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			Result!ISyntaxTree resTemp;
+			ISyntaxTree[] treeList;
+
+			resTemp = ElementParser_COMMA.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = restricted_type.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
+		}
+	}
+	private static class ComplexParser_LoopQualified252
+	{
+		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>
+		private alias PartialTreeType = PartialTree!252;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			ISyntaxTree[] treeList;
+			TokenIterator lastError;
+			while(true)
+			{
+				auto result = ComplexParser_Sequential251.parse(r);
+				lastError = result.iterError;
+				if(result.failed) break;
+				treeList ~= result.value;
+				r = result.iterNext;
+			}
+			return ResultType(true, r, lastError, new PartialTreeType(treeList));
+		}
+	}
+	private static class ComplexParser_Sequential253
+	{
+		// id=<Sequential:<false:true:restricted_type:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>>
+		private alias PartialTreeType = PartialTree!253;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			Result!ISyntaxTree resTemp;
+			ISyntaxTree[] treeList;
+
+			resTemp = restricted_type.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ComplexParser_LoopQualified252.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
+		}
+	}
+	private static class ComplexParser_Skippable254
+	{
+		// id=<Skippable:<Sequential:<false:true:restricted_type:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>>>
+		private alias PartialTreeType = PartialTree!254;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			auto result = ComplexParser_Sequential253.parse(r);
+			if(result.failed)
+			{
+				return ResultType(true, r, r, new PartialTreeType(null));
+			}
+			else
+			{
+				return ResultType(true, result.iterNext, result.iterError, new PartialTreeType([result.value]));
+			}
+		}
+	}
+	private static class ComplexParser_Sequential255
+	{
+		// id=<Sequential:<false:false:LP:>,<Skippable:<Sequential:<false:true:restricted_type:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>>>,<false:false:RP:>>
+		private alias PartialTreeType = PartialTree!255;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			Result!ISyntaxTree resTemp;
+			ISyntaxTree[] treeList;
+
+			resTemp = ElementParser_LP.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ComplexParser_Skippable254.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+
+			resTemp = ElementParser_RP.parse(r);
+			if(resTemp.failed)
+			{
+				return ResultType(false, r, resTemp.iterError);
+			}
+			treeList ~= resTemp.value;
+			r = resTemp.iterNext;
+			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
+		}
+	}
+	private static class ComplexParser_Switching256
+	{
+		// id=<Switch:<false:true:single_types:>,<Sequential:<false:false:LP:>,<Skippable:<Sequential:<false:true:restricted_type:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>>>,<false:false:RP:>>>
+		private alias PartialTreeType = PartialTree!256;
+		private alias ResultType = Result!PartialTreeType;
+		mixin PartialParserHeader!innerParse;
+
+		private static ResultType innerParse(TokenIterator r)
+		{
+			Result!ISyntaxTree resTemp;
+			TokenIterator[] errors;
+
+			resTemp = single_types.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+
+			resTemp = ComplexParser_Sequential255.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
+			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
+		}
+	}
+	private static class ComplexParser_Sequential257
+	{
+		// id=<Sequential:<false:false:SHARP:>,<Switch:<false:true:single_types:>,<Sequential:<false:false:LP:>,<Skippable:<Sequential:<false:true:restricted_type:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:restricted_type:>>>>>,<false:false:RP:>>>>
+		private alias PartialTreeType = PartialTree!257;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -9916,7 +8901,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Switching294.parse(r);
+			resTemp = ComplexParser_Switching256.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -9926,48 +8911,26 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential296
+	private static class ComplexParser_Switching258
 	{
-		// id=<Sequential:<true:true:single_restricted_type:srt>,<Action: return srt; >>
-		private alias PartialTreeType = PartialTree!296;
+		// id=<Switch:<false:false:AUTO:>,<false:true:single_restricted_type:>>
+		private alias PartialTreeType = PartialTree!258;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
 			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			TokenIterator[] errors;
+
+			resTemp = ElementParser_AUTO.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
 
 			resTemp = single_restricted_type.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching297
-	{
-		// id=<Switch:<Sequential:<true:false:AUTO:a>,<Action: return new InferenceTypeNode(a.location); >>,<Sequential:<true:true:single_restricted_type:srt>,<Action: return srt; >>>
-		private alias PartialTreeType = PartialTree!297;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential258.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential296.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -9976,48 +8939,26 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Sequential298
+	private static class ComplexParser_Switching259
 	{
-		// id=<Sequential:<true:false:IDENTIFIER:t>,<Action: return new TemplateinstanceNode(t.location, t.text, null); >>
-		private alias PartialTreeType = PartialTree!298;
+		// id=<Switch:<false:true:register_types:>,<false:false:IDENTIFIER:>>
+		private alias PartialTreeType = PartialTree!259;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
 			Result!ISyntaxTree resTemp;
-			ISyntaxTree[] treeList;
+			TokenIterator[] errors;
+
+			resTemp = register_types.parse(r);
+			if(resTemp.succeeded)
+			{
+				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
+			}
+			errors ~= resTemp.iterError;
 
 			resTemp = ElementParser_IDENTIFIER.parse(r);
-			if(resTemp.failed)
-			{
-				return ResultType(false, r, resTemp.iterError);
-			}
-			treeList ~= resTemp.value;
-			r = resTemp.iterNext;
-			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Switching299
-	{
-		// id=<Switch:<Sequential:<true:true:register_types:rt>,<Action: return rt; >>,<Sequential:<true:false:IDENTIFIER:t>,<Action: return new TemplateinstanceNode(t.location, t.text, null); >>>
-		private alias PartialTreeType = PartialTree!299;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			Result!ISyntaxTree resTemp;
-			TokenIterator[] errors;
-
-			resTemp = ComplexParser_Sequential266.parse(r);
-			if(resTemp.succeeded)
-			{
-				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
-			}
-			errors ~= resTemp.iterError;
-
-			resTemp = ComplexParser_Sequential298.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -10026,10 +8967,10 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Sequential300
+	private static class ComplexParser_Sequential260
 	{
 		// id=<Sequential:<false:false:COMMA:>,<false:true:import_item:>>
-		private alias PartialTreeType = PartialTree!300;
+		private alias PartialTreeType = PartialTree!260;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10056,32 +8997,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_LoopQualified301
+	private static class ComplexParser_Sequential261
 	{
-		// id=<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:import_item:>>>
-		private alias PartialTreeType = PartialTree!301;
-		private alias ResultType = Result!PartialTreeType;
-		mixin PartialParserHeader!innerParse;
-
-		private static ResultType innerParse(TokenIterator r)
-		{
-			ISyntaxTree[] treeList;
-			TokenIterator lastError;
-			while(true)
-			{
-				auto result = ComplexParser_Sequential300.parse(r);
-				lastError = result.iterError;
-				if(result.failed) break;
-				treeList ~= result.value;
-				r = result.iterNext;
-			}
-			return ResultType(true, r, lastError, new PartialTreeType(treeList));
-		}
-	}
-	private static class ComplexParser_Sequential302
-	{
-		// id=<Sequential:<false:true:import_item:>,<LoopQualified:false:<Sequential:<false:false:COMMA:>,<false:true:import_item:>>>>
-		private alias PartialTreeType = PartialTree!302;
+		// id=<Sequential:<false:true:import_item:>,<Sequential:<false:false:COMMA:>,<false:true:import_item:>>>
+		private alias PartialTreeType = PartialTree!261;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10098,7 +9017,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified301.parse(r);
+			resTemp = ComplexParser_Sequential260.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -10108,10 +9027,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential303
+	private static class ComplexParser_Sequential262
 	{
 		// id=<Sequential:<false:false:PERIOD:>,<false:false:IDENTIFIER:>>
-		private alias PartialTreeType = PartialTree!303;
+		private alias PartialTreeType = PartialTree!262;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10138,10 +9057,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_LoopQualified304
+	private static class ComplexParser_LoopQualified263
 	{
 		// id=<LoopQualified:false:<Sequential:<false:false:PERIOD:>,<false:false:IDENTIFIER:>>>
-		private alias PartialTreeType = PartialTree!304;
+		private alias PartialTreeType = PartialTree!263;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10151,7 +9070,7 @@ public class Grammar
 			TokenIterator lastError;
 			while(true)
 			{
-				auto result = ComplexParser_Sequential303.parse(r);
+				auto result = ComplexParser_Sequential262.parse(r);
 				lastError = result.iterError;
 				if(result.failed) break;
 				treeList ~= result.value;
@@ -10160,10 +9079,10 @@ public class Grammar
 			return ResultType(true, r, lastError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential305
+	private static class ComplexParser_Sequential264
 	{
 		// id=<Sequential:<false:false:PERIOD:>,<false:false:ASTERISK:>>
-		private alias PartialTreeType = PartialTree!305;
+		private alias PartialTreeType = PartialTree!264;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10190,10 +9109,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential306
+	private static class ComplexParser_Sequential265
 	{
 		// id=<Sequential:<false:false:PERIOD:>,<false:false:LB:>,<false:true:import_list:>,<false:false:RB:>>
-		private alias PartialTreeType = PartialTree!306;
+		private alias PartialTreeType = PartialTree!265;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10236,10 +9155,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Switching307
+	private static class ComplexParser_Switching266
 	{
 		// id=<Switch:<Sequential:<false:false:PERIOD:>,<false:false:ASTERISK:>>,<Sequential:<false:false:PERIOD:>,<false:false:LB:>,<false:true:import_list:>,<false:false:RB:>>>
-		private alias PartialTreeType = PartialTree!307;
+		private alias PartialTreeType = PartialTree!266;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10248,14 +9167,14 @@ public class Grammar
 			Result!ISyntaxTree resTemp;
 			TokenIterator[] errors;
 
-			resTemp = ComplexParser_Sequential305.parse(r);
+			resTemp = ComplexParser_Sequential264.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
 			}
 			errors ~= resTemp.iterError;
 
-			resTemp = ComplexParser_Sequential306.parse(r);
+			resTemp = ComplexParser_Sequential265.parse(r);
 			if(resTemp.succeeded)
 			{
 				return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType([resTemp.value]));
@@ -10264,16 +9183,16 @@ public class Grammar
 			return ResultType(false, r, errors.reduce!((a, b) => a.pos > b.pos ? a : b));
 		}
 	}
-	private static class ComplexParser_Skippable308
+	private static class ComplexParser_Skippable267
 	{
 		// id=<Skippable:<Switch:<Sequential:<false:false:PERIOD:>,<false:false:ASTERISK:>>,<Sequential:<false:false:PERIOD:>,<false:false:LB:>,<false:true:import_list:>,<false:false:RB:>>>>
-		private alias PartialTreeType = PartialTree!308;
+		private alias PartialTreeType = PartialTree!267;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
 		private static ResultType innerParse(TokenIterator r)
 		{
-			auto result = ComplexParser_Switching307.parse(r);
+			auto result = ComplexParser_Switching266.parse(r);
 			if(result.failed)
 			{
 				return ResultType(true, r, r, new PartialTreeType(null));
@@ -10284,10 +9203,10 @@ public class Grammar
 			}
 		}
 	}
-	private static class ComplexParser_Sequential309
+	private static class ComplexParser_Sequential268
 	{
 		// id=<Sequential:<false:false:IDENTIFIER:>,<LoopQualified:false:<Sequential:<false:false:PERIOD:>,<false:false:IDENTIFIER:>>>,<Skippable:<Switch:<Sequential:<false:false:PERIOD:>,<false:false:ASTERISK:>>,<Sequential:<false:false:PERIOD:>,<false:false:LB:>,<false:true:import_list:>,<false:false:RB:>>>>>
-		private alias PartialTreeType = PartialTree!309;
+		private alias PartialTreeType = PartialTree!268;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10304,7 +9223,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified304.parse(r);
+			resTemp = ComplexParser_LoopQualified263.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -10312,7 +9231,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_Skippable308.parse(r);
+			resTemp = ComplexParser_Skippable267.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -10322,10 +9241,10 @@ public class Grammar
 			return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));
 		}
 	}
-	private static class ComplexParser_Sequential310
+	private static class ComplexParser_Sequential269
 	{
 		// id=<Sequential:<false:false:IDENTIFIER:>,<LoopQualified:false:<Sequential:<false:false:PERIOD:>,<false:false:IDENTIFIER:>>>>
-		private alias PartialTreeType = PartialTree!310;
+		private alias PartialTreeType = PartialTree!269;
 		private alias ResultType = Result!PartialTreeType;
 		mixin PartialParserHeader!innerParse;
 
@@ -10342,7 +9261,7 @@ public class Grammar
 			treeList ~= resTemp.value;
 			r = resTemp.iterNext;
 
-			resTemp = ComplexParser_LoopQualified304.parse(r);
+			resTemp = ComplexParser_LoopQualified263.parse(r);
 			if(resTemp.failed)
 			{
 				return ResultType(false, r, resTemp.iterError);
@@ -10433,38 +9352,37 @@ public class Grammar
 	public alias template_arg_list = RuleParser!("template_arg_list", ComplexParser_Sequential199);
 	public alias template_arg = RuleParser!("template_arg", ComplexParser_Sequential205);
 	public alias varg_list = RuleParser!("varg_list", ComplexParser_Sequential208);
-	public alias varg = RuleParser!("varg", ComplexParser_Switching215);
-	public alias literal_varg_list = RuleParser!("literal_varg_list", ComplexParser_Sequential217);
-	public alias literal_varg = RuleParser!("literal_varg", ComplexParser_Sequential219);
-	public alias assoc_array_element_list = RuleParser!("assoc_array_element_list", ComplexParser_Sequential222);
-	public alias assoc_array_element = RuleParser!("assoc_array_element", ComplexParser_Sequential223);
-	public alias class_qualifier = RuleParser!("class_qualifier", ComplexParser_Switching228);
-	public alias trait_qualifier = RuleParser!("trait_qualifier", ComplexParser_Switching229);
-	public alias enum_qualifier = RuleParser!("enum_qualifier", ComplexParser_Switching229);
-	public alias template_qualifier = RuleParser!("template_qualifier", ComplexParser_Switching230);
-	public alias alias_qualifier = RuleParser!("alias_qualifier", ComplexParser_Switching230);
-	public alias type_qualifier = RuleParser!("type_qualifier", ComplexParser_Sequential231);
-	public alias field_qualifier = RuleParser!("field_qualifier", ComplexParser_Switching233);
-	public alias method_qualifier = RuleParser!("method_qualifier", ComplexParser_Switching235);
-	public alias ctor_qualifier = RuleParser!("ctor_qualifier", ComplexParser_Switching236);
-	public alias lvar_qualifier = RuleParser!("lvar_qualifier", ComplexParser_Switching237);
-	public alias def_id = RuleParser!("def_id", ComplexParser_Sequential241);
-	public alias def_id_arg_list = RuleParser!("def_id_arg_list", ComplexParser_Sequential244);
-	public alias def_id_arg = RuleParser!("def_id_arg", ComplexParser_Sequential249);
-	public alias type = RuleParser!("type", ComplexParser_Sequential252);
-	public alias type_body = RuleParser!("type_body", ComplexParser_Sequential257);
-	public alias type_body_base = RuleParser!("type_body_base", ComplexParser_Switching260);
-	public alias restricted_type = RuleParser!("restricted_type", ComplexParser_Sequential265);
-	public alias primitive_types = RuleParser!("primitive_types", ComplexParser_Switching269);
-	public alias __typeof = RuleParser!("__typeof", ComplexParser_Sequential273);
-	public alias register_types = RuleParser!("register_types", ComplexParser_Switching284);
-	public alias template_instance = RuleParser!("template_instance", ComplexParser_Sequential287);
-	public alias template_tail = RuleParser!("template_tail", ComplexParser_Sequential295);
-	public alias single_types = RuleParser!("single_types", ComplexParser_Switching297);
-	public alias single_restricted_type = RuleParser!("single_restricted_type", ComplexParser_Switching299);
-	public alias import_list = RuleParser!("import_list", ComplexParser_Sequential302);
-	public alias import_item = RuleParser!("import_item", ComplexParser_Sequential309);
-	public alias package_id = RuleParser!("package_id", ComplexParser_Sequential310);
+	public alias varg = RuleParser!("varg", ComplexParser_Sequential211);
+	public alias literal_varg_list = RuleParser!("literal_varg_list", ComplexParser_Sequential213);
+	public alias literal_varg = RuleParser!("literal_varg", ComplexParser_Sequential214);
+	public alias assoc_array_element_list = RuleParser!("assoc_array_element_list", ComplexParser_Sequential217);
+	public alias assoc_array_element = RuleParser!("assoc_array_element", ComplexParser_Sequential218);
+	public alias class_qualifier = RuleParser!("class_qualifier", ComplexParser_Switching219);
+	public alias trait_qualifier = RuleParser!("trait_qualifier", ComplexParser_Switching220);
+	public alias enum_qualifier = RuleParser!("enum_qualifier", ComplexParser_Switching220);
+	public alias template_qualifier = RuleParser!("template_qualifier", ComplexParser_Switching221);
+	public alias alias_qualifier = RuleParser!("alias_qualifier", ComplexParser_Switching221);
+	public alias type_qualifier = RuleParser!("type_qualifier", ElementParser_CONST);
+	public alias field_qualifier = RuleParser!("field_qualifier", ComplexParser_Switching222);
+	public alias method_qualifier = RuleParser!("method_qualifier", ComplexParser_Switching223);
+	public alias ctor_qualifier = RuleParser!("ctor_qualifier", ComplexParser_Switching224);
+	public alias lvar_qualifier = RuleParser!("lvar_qualifier", ComplexParser_Switching225);
+	public alias def_id = RuleParser!("def_id", ComplexParser_Sequential229);
+	public alias def_id_arg_list = RuleParser!("def_id_arg_list", ComplexParser_Sequential232);
+	public alias def_id_arg = RuleParser!("def_id_arg", ComplexParser_Sequential237);
+	public alias type = RuleParser!("type", ComplexParser_Sequential239);
+	public alias type_body = RuleParser!("type_body", ComplexParser_Sequential243);
+	public alias restricted_type = RuleParser!("restricted_type", ComplexParser_Sequential245);
+	public alias primitive_types = RuleParser!("primitive_types", ComplexParser_Switching246);
+	public alias __typeof = RuleParser!("__typeof", ComplexParser_Sequential249);
+	public alias register_types = RuleParser!("register_types", ComplexParser_Switching250);
+	public alias template_instance = RuleParser!("template_instance", ComplexParser_Sequential184);
+	public alias template_tail = RuleParser!("template_tail", ComplexParser_Sequential257);
+	public alias single_types = RuleParser!("single_types", ComplexParser_Switching258);
+	public alias single_restricted_type = RuleParser!("single_restricted_type", ComplexParser_Switching259);
+	public alias import_list = RuleParser!("import_list", ComplexParser_Sequential261);
+	public alias import_item = RuleParser!("import_item", ComplexParser_Sequential268);
+	public alias package_id = RuleParser!("package_id", ComplexParser_Sequential269);
 }
 public auto parse(Token[] tokenList)
 {
@@ -10485,7 +9403,9 @@ public class TreeReduce
 	{
 		if(node.content.child[0].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[0].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[0].child[0]
 		foreach(n0; node.content.child[1].child)
 		{
 		}
@@ -10521,7 +9441,9 @@ public class TreeReduce
 		}
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		foreach(n0; node.content.child[4].child)
 		{
 		}
@@ -10572,7 +9494,9 @@ public class TreeReduce
 			}
 			if(__tree_ref__.child[2].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: __tree_ref__.child[2].child[0].child[0]
 			}
+		// HasValue: Reference Base: __tree_ref__.child[2].child[0]
 			foreach(n0; __tree_ref__.child[3].child)
 			{
 			}
@@ -10586,14 +9510,18 @@ public class TreeReduce
 		}
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
 	private static auto reduce_enum_element(RuleTree!"enum_element" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_template_def(RuleTree!"template_def" node) in { assert(node !is null); } body
@@ -10603,7 +9531,9 @@ public class TreeReduce
 		}
 		if(node.content.child[4].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[4].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[4].child[0]
 		if((cast(PartialTree!44)(node.content.child[6].child[0])) !is null)
 		{
 			auto __tree_ref__ = cast(PartialTree!44)(node.content.child[6].child[0]);
@@ -10653,7 +9583,9 @@ public class TreeReduce
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_method_def(RuleTree!"method_def" node) in { assert(node !is null); } body
@@ -10678,7 +9610,9 @@ public class TreeReduce
 		}
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		assert(false);
 	}
 	private static auto reduce_function_def(RuleTree!"function_def" node) in { assert(node !is null); } body
@@ -10699,7 +9633,9 @@ public class TreeReduce
 		}
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		assert(false);
 	}
 	private static auto reduce_abstract_method_def(RuleTree!"abstract_method_def" node) in { assert(node !is null); } body
@@ -10720,7 +9656,9 @@ public class TreeReduce
 		}
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		assert(false);
 	}
 	private static auto reduce_property_def(RuleTree!"property_def" node) in { assert(node !is null); } body
@@ -10734,7 +9672,9 @@ public class TreeReduce
 		}
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
 	private static auto reduce_getter_def(RuleTree!"getter_def" node) in { assert(node !is null); } body
@@ -10744,10 +9684,14 @@ public class TreeReduce
 		}
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		if(node.content.child[4].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[4].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[4].child[0]
 		assert(false);
 	}
 	private static auto reduce_ctor_def(RuleTree!"ctor_def" node) in { assert(node !is null); } body
@@ -10757,7 +9701,9 @@ public class TreeReduce
 		}
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		assert(false);
 	}
 	private static auto reduce_statement(RuleTree!"statement" node) in { assert(node !is null); } body
@@ -10768,7 +9714,9 @@ public class TreeReduce
 	{
 		if(node.content.child[5].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[5].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[5].child[0]
 		assert(false);
 	}
 	private static auto reduce_while_stmt(RuleTree!"while_stmt" node) in { assert(node !is null); } body
@@ -10783,41 +9731,55 @@ public class TreeReduce
 	{
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
 	private static auto reduce_for_stmt(RuleTree!"for_stmt" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		if(node.content.child[4].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[4].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[4].child[0]
 		if(node.content.child[6].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[6].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[6].child[0]
 		assert(false);
 	}
 	private static auto reduce_return_stmt(RuleTree!"return_stmt" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_break_stmt(RuleTree!"break_stmt" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_continue_stmt(RuleTree!"continue_stmt" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_label_stmt(RuleTree!"label_stmt" node) in { assert(node !is null); } body
@@ -10838,10 +9800,14 @@ public class TreeReduce
 			auto __tree_ref__ = cast(PartialTree!105)(node.content.child[1].child[0]);
 			if(__tree_ref__.child[0].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: __tree_ref__.child[0].child[0].child[0]
 			}
+		// HasValue: Reference Base: __tree_ref__.child[0].child[0]
 			if(__tree_ref__.child[4].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: __tree_ref__.child[4].child[0].child[0]
 			}
+		// HasValue: Reference Base: __tree_ref__.child[4].child[0]
 		}
 		assert(false);
 	}
@@ -10900,7 +9866,9 @@ public class TreeReduce
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_short_expr(RuleTree!"short_expr" node) in { assert(node !is null); } body
@@ -10965,21 +9933,27 @@ public class TreeReduce
 				auto __tree_ref__ = cast(PartialTree!172)(n0.child[0]);
 				if(__tree_ref__.child[1].child[0].child.length > 0)
 				{
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0].child[0]
 				}
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0]
 			}
 			else if((cast(PartialTree!174)(n0.child[0])) !is null)
 			{
 				auto __tree_ref__ = cast(PartialTree!174)(n0.child[0]);
 				if(__tree_ref__.child[1].child[0].child.length > 0)
 				{
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0].child[0]
 				}
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0]
 			}
 			else if((cast(PartialTree!176)(n0.child[0])) !is null)
 			{
 				auto __tree_ref__ = cast(PartialTree!176)(n0.child[0]);
 				if(__tree_ref__.child[2].child[0].child.length > 0)
 				{
+		// HasValue: Reference Base: __tree_ref__.child[2].child[0].child[0]
 				}
+		// HasValue: Reference Base: __tree_ref__.child[2].child[0]
 			}
 			else if((cast(PartialTree!179)(n0.child[0])) !is null)
 			{
@@ -10995,7 +9969,9 @@ public class TreeReduce
 			auto __tree_ref__ = cast(PartialTree!184)(node.content.child[0]);
 			if(__tree_ref__.child[1].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0].child[0]
 			}
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0]
 		}
 		assert(false);
 	}
@@ -11007,7 +9983,9 @@ public class TreeReduce
 	{
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		foreach(n0; node.content.child[5].child)
 		{
 		}
@@ -11017,7 +9995,9 @@ public class TreeReduce
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_special_literals(RuleTree!"special_literals" node) in { assert(node !is null); } body
@@ -11031,7 +10011,9 @@ public class TreeReduce
 			auto __tree_ref__ = cast(PartialTree!194)(node.content.child[0].child[0]);
 			if(__tree_ref__.child[1].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0].child[0]
 			}
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0]
 		}
 		assert(false);
 	}
@@ -11055,60 +10037,28 @@ public class TreeReduce
 	}
 	private static auto reduce_varg_list(RuleTree!"varg_list" node) in { assert(node !is null); } body
 	{
-		auto t = reduce_varg(cast(RuleTree!"varg")(node.content.child[0]));
-		 auto tlist = [t]; 
-		foreach(n0; node.content.child[2].child)
+		foreach(n0; node.content.child[1].child)
 		{
-			auto v = reduce_varg(cast(RuleTree!"varg")(n0.child[1]));
-			 tlist ~= v 
 		}
-		 return tlist; 
 		assert(false);
 	}
 	private static auto reduce_varg(RuleTree!"varg" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!209)(node.content.child[0])) !is null)
+		if(node.content.child[1].child[0].child.length > 0)
 		{
-			auto __tree_ref__ = cast(PartialTree!209)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			auto n = (cast(TokenTree)(__tree_ref__.child[1])).token.text;
-			auto dv = reduce_expression(cast(RuleTree!"expression")(__tree_ref__.child[3]));
-			 return new VirtualParamNode(t, n.text, dv, true); 
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
+			if(node.content.child[1].child[0].child[0].child[1].child[0].child.length > 0)
+			{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[1].child[0].child[0]
+			}
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[1].child[0]
 		}
-		else if((cast(PartialTree!210)(node.content.child[0])) !is null)
+		// HasValue: Reference Base: node.content.child[1].child[0]
+		if(node.content.child[2].child[0].child.length > 0)
 		{
-			auto __tree_ref__ = cast(PartialTree!210)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			auto n = (cast(TokenTree)(__tree_ref__.child[1])).token.text;
-			auto dv = reduce_expression(cast(RuleTree!"expression")(__tree_ref__.child[3]));
-			 return new VirtualParamNode(t, n.text, dv, false); 
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
-		else if((cast(PartialTree!211)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!211)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			auto n = (cast(TokenTree)(__tree_ref__.child[1])).token.text;
-			 return new VirtualParamNode(t, n.text, null, true); 
-		}
-		else if((cast(PartialTree!212)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!212)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			auto n = (cast(TokenTree)(__tree_ref__.child[1])).token.text;
-			 return new VirtualParamNode(t, n.text, null, false); 
-		}
-		else if((cast(PartialTree!213)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!213)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			 return new VirtualParamNode(t, null, null, true); 
-		}
-		else if((cast(PartialTree!214)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!214)(node.content.child[0]);
-			auto t = reduce_type(cast(RuleTree!"type")(__tree_ref__.child[0]));
-			 return new VirtualParamNode(t, null, null, false); 
-		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
 	private static auto reduce_literal_varg_list(RuleTree!"literal_varg_list" node) in { assert(node !is null); } body
@@ -11119,13 +10069,19 @@ public class TreeReduce
 	{
 		if(node.content.child[0].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[0].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[0].child[0]
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		if(node.content.child[3].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[3].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[3].child[0]
 		assert(false);
 	}
 	private static auto reduce_assoc_array_element_list(RuleTree!"assoc_array_element_list" node) in { assert(node !is null); } body
@@ -11141,264 +10097,56 @@ public class TreeReduce
 	}
 	private static auto reduce_class_qualifier(RuleTree!"class_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!226)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!226)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Final); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
 		assert(false);
 	}
 	private static auto reduce_trait_qualifier(RuleTree!"trait_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
 		assert(false);
 	}
 	private static auto reduce_enum_qualifier(RuleTree!"enum_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
 		assert(false);
 	}
 	private static auto reduce_template_qualifier(RuleTree!"template_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
 		assert(false);
 	}
 	private static auto reduce_alias_qualifier(RuleTree!"alias_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
 		assert(false);
 	}
 	private static auto reduce_type_qualifier(RuleTree!"type_qualifier" node) in { assert(node !is null); } body
 	{
-		auto t = (cast(TokenTree)(node.content.child[0])).token.text;
-		 return Qualifier(t.location, Qualifiers.Const); 
 		assert(false);
 	}
 	private static auto reduce_field_qualifier(RuleTree!"field_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!232)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!232)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Protected); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
-		else if((cast(PartialTree!226)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!226)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Final); 
-		}
-		else if((cast(PartialTree!231)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!231)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Const); 
-		}
 		assert(false);
 	}
 	private static auto reduce_method_qualifier(RuleTree!"method_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!232)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!232)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Protected); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
-		else if((cast(PartialTree!226)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!226)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Final); 
-		}
-		else if((cast(PartialTree!231)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!231)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Const); 
-		}
-		else if((cast(PartialTree!234)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!234)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Override); 
-		}
 		assert(false);
 	}
 	private static auto reduce_ctor_qualifier(RuleTree!"ctor_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!224)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!224)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Public); 
-		}
-		else if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!232)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!232)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Protected); 
-		}
-		else if((cast(PartialTree!231)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!231)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Const); 
-		}
 		assert(false);
 	}
 	private static auto reduce_lvar_qualifier(RuleTree!"lvar_qualifier" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!225)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!225)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Private); 
-		}
-		else if((cast(PartialTree!232)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!232)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Protected); 
-		}
-		else if((cast(PartialTree!231)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!231)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Const); 
-		}
-		else if((cast(PartialTree!227)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!227)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return Qualifier(t.location, Qualifiers.Static); 
-		}
 		assert(false);
 	}
 	private static auto reduce_def_id(RuleTree!"def_id" node) in { assert(node !is null); } body
 	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 			if(node.content.child[1].child[0].child[0].child[1].child[0].child.length > 0)
 			{
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[1].child[0].child[0]
 			}
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[1].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
 	private static auto reduce_def_id_arg_list(RuleTree!"def_id_arg_list" node) in { assert(node !is null); } body
@@ -11417,248 +10165,89 @@ public class TreeReduce
 	}
 	private static auto reduce_type(RuleTree!"type" node) in { assert(node !is null); } body
 	{
-		 auto tq = Qualifier(Location(int.max, int.max), 0); bool hasQualifier = false; 
-		foreach(n0; node.content.child[1].child)
+		foreach(n0; node.content.child[0].child)
 		{
-			auto tqq = reduce_type_qualifier(cast(RuleTree!"type_qualifier")(n0.child[0]));
-			 tq = tq.combine(tqq); hasQualifier = true; 
 		}
-		auto tb = reduce_type_body(cast(RuleTree!"type_body")(node.content.child[2]));
-		 return hasQualifier ? new QualifiedTypeNode(tq, tb) : tb; 
 		assert(false);
 	}
 	private static auto reduce_type_body(RuleTree!"type_body" node) in { assert(node !is null); } body
 	{
-		auto tbb = reduce_type_body_base(cast(RuleTree!"type_body_base")(node.content.child[0]));
 		if(node.content.child[1].child[0].child.length > 0)
 		{
-			if((cast(PartialTree!253)(node.content.child[1].child[0].child[0].child[0])) !is null)
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
+			if(node.content.child[1].child[0].child[0].child[2].child[0].child.length > 0)
 			{
-				auto __tree_ref__ = cast(PartialTree!253)(node.content.child[1].child[0].child[0].child[0]);
-				auto vpl = reduce_varg_list(cast(RuleTree!"varg_list")(__tree_ref__.child[2]));
-				 tbb = new FunctionTypeNode(tbb, vpl); 
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[2].child[0].child[0]
 			}
-			else if((cast(PartialTree!254)(node.content.child[1].child[0].child[0].child[0])) !is null)
-			{
-				auto __tree_ref__ = cast(PartialTree!254)(node.content.child[1].child[0].child[0].child[0]);
-				 tbb = new FunctionTypeNode(tbb, null); 
-			}
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0].child[2].child[0]
 		}
-		 return tbb; 
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
-	private static auto reduce_type_body_base(RuleTree!"type_body_base" node) in { assert(node !is null); } body
+	private static auto reduce_restricted_type(RuleTree!"restricted_type" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!258)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!258)(node.content.child[0]);
-			auto a = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new InferenceTypeNode(a.location); 
-		}
-		else if((cast(PartialTree!259)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!259)(node.content.child[0]);
-			auto rt = reduce_restricted_type(cast(RuleTree!"restricted_type")(__tree_ref__.child[0]));
-			 return rt; 
-		}
-		assert(false);
-	}
-	private static TypeNode reduce_restricted_type(RuleTree!"restricted_type" node) in { assert(node !is null); } body
-	{
-		auto pt = reduce_primitive_types(cast(RuleTree!"primitive_types")(node.content.child[0]));
 		foreach(n0; node.content.child[1].child)
 		{
-			if((cast(PartialTree!261)(n0.child[0])) !is null)
+			if(n0.child[1].child[0].child.length > 0)
 			{
-				auto __tree_ref__ = cast(PartialTree!261)(n0.child[0]);
-				auto e = reduce_expression(cast(RuleTree!"expression")(__tree_ref__.child[1]));
-				 pt = new ArrayTypeNode(pt, e); 
+		// HasValue: Reference Base: n0.child[1].child[0].child[0]
 			}
-			else if((cast(PartialTree!262)(n0.child[0])) !is null)
-			{
-				auto __tree_ref__ = cast(PartialTree!262)(n0.child[0]);
-				 pt = new ArrayTypeNode(pt, null); 
-			}
-		}
-		 return pt; 
-		assert(false);
-	}
-	private static TypeNode reduce_primitive_types(RuleTree!"primitive_types" node) in { assert(node !is null); } body
-	{
-		if((cast(PartialTree!266)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!266)(node.content.child[0]);
-			auto rt = reduce_register_types(cast(RuleTree!"register_types")(__tree_ref__.child[0]));
-			 return rt; 
-		}
-		else if((cast(PartialTree!267)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!267)(node.content.child[0]);
-			auto ti = reduce_template_instance(cast(RuleTree!"template_instance")(__tree_ref__.child[0]));
-			 return ti; 
-		}
-		else if((cast(PartialTree!268)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!268)(node.content.child[0]);
-			auto to = reduce___typeof(cast(RuleTree!"__typeof")(__tree_ref__.child[0]));
-			 return to; 
+		// HasValue: Reference Base: n0.child[1].child[0]
 		}
 		assert(false);
 	}
-	private static TypeofNode reduce___typeof(RuleTree!"__typeof" node) in { assert(node !is null); } body
+	private static auto reduce_primitive_types(RuleTree!"primitive_types" node) in { assert(node !is null); } body
 	{
-		auto f = (cast(TokenTree)(node.content.child[0])).token.text;
-		if((cast(PartialTree!270)(node.content.child[2].child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!270)(node.content.child[2].child[0]);
-			auto e = reduce_expression(cast(RuleTree!"expression")(__tree_ref__.child[0]));
-			 return new TypeofNode(f.location, e); 
-		}
-		else if((cast(PartialTree!271)(node.content.child[2].child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!271)(node.content.child[2].child[0]);
-			auto rt = reduce_restricted_type(cast(RuleTree!"restricted_type")(__tree_ref__.child[0]));
-			 return new TypeofNode(f.location, rt); 
-		}
 		assert(false);
 	}
-	private static RegisterTypeNode reduce_register_types(RuleTree!"register_types" node) in { assert(node !is null); } body
+	private static auto reduce___typeof(RuleTree!"__typeof" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!274)(node.content.child[0])) !is null)
+		if(node.content.child[2].child[0].child.length > 0)
 		{
-			auto __tree_ref__ = cast(PartialTree!274)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Void); 
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
-		else if((cast(PartialTree!275)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!275)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Char); 
-		}
-		else if((cast(PartialTree!276)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!276)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uchar); 
-		}
-		else if((cast(PartialTree!277)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!277)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Byte); 
-		}
-		else if((cast(PartialTree!278)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!278)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Short); 
-		}
-		else if((cast(PartialTree!279)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!279)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ushort); 
-		}
-		else if((cast(PartialTree!280)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!280)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Int); 
-		}
-		else if((cast(PartialTree!281)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!281)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uint); 
-		}
-		else if((cast(PartialTree!282)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!282)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Long); 
-		}
-		else if((cast(PartialTree!283)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!283)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ulong); 
-		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
-	private static TemplateInstanceTypeNode reduce_template_instance(RuleTree!"template_instance" node) in { assert(node !is null); } body
+	private static auto reduce_register_types(RuleTree!"register_types" node) in { assert(node !is null); } body
 	{
-		auto t = (cast(TokenTree)(node.content.child[0])).token.text;
+		assert(false);
+	}
+	private static auto reduce_template_instance(RuleTree!"template_instance" node) in { assert(node !is null); } body
+	{
 		if(node.content.child[1].child[0].child.length > 0)
 		{
-			auto v = reduce_template_tail(cast(RuleTree!"template_tail")(node.content.child[1].child[0].child[0].child[0]));
-			 return new TemplateInstanceTypeNode(t.location, t.text, v); 
+		// HasValue: Reference Base: node.content.child[1].child[0].child[0]
 		}
-		 return new TemplateInstanceNode(t.location, t.text, null); 
+		// HasValue: Reference Base: node.content.child[1].child[0]
 		assert(false);
 	}
-	private static TypeNode[] reduce_template_tail(RuleTree!"template_tail" node) in { assert(node !is null); } body
+	private static auto reduce_template_tail(RuleTree!"template_tail" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!288)(node.content.child[1].child[0])) !is null)
+		if((cast(PartialTree!255)(node.content.child[1].child[0])) !is null)
 		{
-			auto __tree_ref__ = cast(PartialTree!288)(node.content.child[1].child[0]);
-			auto st = reduce_single_types(cast(RuleTree!"single_types")(__tree_ref__.child[0]));
-			 return [st]; 
-		}
-		else if((cast(PartialTree!293)(node.content.child[1].child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!293)(node.content.child[1].child[0]);
+			auto __tree_ref__ = cast(PartialTree!255)(node.content.child[1].child[0]);
 			if(__tree_ref__.child[1].child[0].child.length > 0)
 			{
-				auto first_t = reduce_restricted_type(cast(RuleTree!"restricted_type")(__tree_ref__.child[1].child[0].child[0].child[0]));
-				 auto types = [first_t]; 
-				foreach(n0; __tree_ref__.child[1].child[0].child[0].child[2].child)
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0].child[0]
+				foreach(n0; __tree_ref__.child[1].child[0].child[0].child[1].child)
 				{
-					auto second_t = reduce_restricted_type(cast(RuleTree!"restricted_type")(n0.child[1]));
-					 types ~= second_t; 
 				}
 			}
-			 return types; 
+		// HasValue: Reference Base: __tree_ref__.child[1].child[0]
 		}
 		assert(false);
 	}
-	private static TypeNode reduce_single_types(RuleTree!"single_types" node) in { assert(node !is null); } body
+	private static auto reduce_single_types(RuleTree!"single_types" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!258)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!258)(node.content.child[0]);
-			auto a = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new InferenceTypeNode(a.location); 
-		}
-		else if((cast(PartialTree!296)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!296)(node.content.child[0]);
-			auto srt = reduce_single_restricted_type(cast(RuleTree!"single_restricted_type")(__tree_ref__.child[0]));
-			 return srt; 
-		}
 		assert(false);
 	}
-	private static TypeNode reduce_single_restricted_type(RuleTree!"single_restricted_type" node) in { assert(node !is null); } body
+	private static auto reduce_single_restricted_type(RuleTree!"single_restricted_type" node) in { assert(node !is null); } body
 	{
-		if((cast(PartialTree!266)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!266)(node.content.child[0]);
-			auto rt = reduce_register_types(cast(RuleTree!"register_types")(__tree_ref__.child[0]));
-			 return rt; 
-		}
-		else if((cast(PartialTree!298)(node.content.child[0])) !is null)
-		{
-			auto __tree_ref__ = cast(PartialTree!298)(node.content.child[0]);
-			auto t = (cast(TokenTree)(__tree_ref__.child[0])).token.text;
-			 return new TemplateinstanceNode(t.location, t.text, null); 
-		}
 		assert(false);
 	}
 	private static auto reduce_import_list(RuleTree!"import_list" node) in { assert(node !is null); } body
 	{
-		foreach(n0; node.content.child[1].child)
-		{
-		}
 		assert(false);
 	}
 	private static auto reduce_import_item(RuleTree!"import_item" node) in { assert(node !is null); } body
@@ -11668,7 +10257,9 @@ public class TreeReduce
 		}
 		if(node.content.child[2].child[0].child.length > 0)
 		{
+		// HasValue: Reference Base: node.content.child[2].child[0].child[0]
 		}
+		// HasValue: Reference Base: node.content.child[2].child[0]
 		assert(false);
 	}
 	private static auto reduce_package_id(RuleTree!"package_id" node) in { assert(node !is null); } body
