@@ -593,13 +593,10 @@ class ParserGenerator : IVisitor
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{");
             this.exTabs++;
             this.referenceStack ~= node.currentReference ~ "[" ~ node.referenceAt.to!string ~ "]";
-            this.outer.currentFile.writeln(2.toTabs, "// HasValue: Reference Base: ", this.referenceStack.join("."));
-            //this.outer.currentFile.writeln(2.toTabs, "// HasValueReferenceRange: ", node.currentReference, " requires index ", node.referenceAt);
             foreach(n; node.innerTrees) n.accept(this);
             this.exTabs--;
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "}");
             this.referenceStack.popBack();
-            this.outer.currentFile.writeln(2.toTabs, "// HasValue: Reference Base: ", this.referenceStack.join("."));
         }
         public void visit(TokenConditionalReferenceRange node)
         {
@@ -697,7 +694,7 @@ class ParserGenerator : IVisitor
         }
         public void visit(Action node)
         {
-            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{ ", node.actionString, " }");
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, node.actionString);
         }
     }
 }

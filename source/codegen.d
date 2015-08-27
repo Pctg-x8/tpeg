@@ -199,7 +199,7 @@ class CodeGenerator : IVisitor
 		this.currentFile.writeln("\t\t\t", "{");
 		this.currentFile.writeln("\t\t\t\t", "if(a.isPerfectMatch && !b.isPerfectMatch) return a;");
 		this.currentFile.writeln("\t\t\t\t", "else if(!a.isPerfectMatch && b.isPerfectMatch) return b;");
-		this.currentFile.writeln("\t\t\t\t", "else throw new TokenizeError(\"Conflicting patterns\", loc);");
+		this.currentFile.writeln("\t\t\t\t", "else return a; /* prior first object */");
 		this.currentFile.writeln("\t\t\t", "}");
 		this.currentFile.writeln("\t\t\t", "return a.length > b.length ? a : b;");
 		this.currentFile.writeln("\t\t", "});");
@@ -208,7 +208,7 @@ class CodeGenerator : IVisitor
 		this.currentFile.writeln("\t\t", "{");
 		this.currentFile.writeln("\t\t\t", "tokenList ~= new Token(loc, longest_match.itype, longest_match.matchStr);");
 		this.currentFile.writeln("\t\t", "}");
-		this.currentFile.writeln("\t\t", "auto lines = longest_match.matchStr.split(ctRegex!r\"\n\");");
+		this.currentFile.writeln("\t\t", "auto lines = longest_match.matchStr.split(ctRegex!r\"\\n\");");
 		this.currentFile.writeln("\t\t", "foreach(a; lines[0 .. $ - 1])");
 		this.currentFile.writeln("\t\t", "{");
 		this.currentFile.writeln("\t\t\t", "loc.col = 1;");

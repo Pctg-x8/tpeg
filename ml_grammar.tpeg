@@ -134,6 +134,7 @@ parser
 	module parser
 	header
 	{
+import com.cterm2.ml.syntaxTree;
 	}
 
 	start_rule compilation_unit
@@ -227,24 +228,64 @@ parser
 		# arglists #
 		template_arg_list = template_arg (COMMA template_arg)*;
 		template_arg = ((type / CLASS / ALIAS) IDENTIFIER / IDENTIFIER) (EQUAL type)*;
-		varg_list = varg (COMMA varg)*;
-		varg = type [IDENTIFIER [EQUAL expression]] [PERIOD3];
+		varg_list = varg:t { auto tlist = [t]; } (COMMA varg:v { tlist ~= v })* { return tlist; };
+		varg = type:t IDENTIFIER:n EQUAL expression:dv PERIOD3 { return new VirtualParamNode(t, n.text, dv, true); }
+			/ type:t IDENTIFIER:n EQUAL expression:dv { return new VirtualParamNode(t, n.text, dv, false); }
+			/ type:t IDENTIFIER:n PERIOD3 { return new VirtualParamNode(t, n.text, null, true); }
+			/ type:t IDENTIFIER:n { return new VirtualParamNode(t, n.text, null, false); }
+			/ type:t PERIOD3 { return new VirtualParamNode(t, null, null, true); }
+			/ type:t { return new VirtualParamNode(t, null, null, false); };
 		literal_varg_list = literal_varg (COMMA literal_varg);
 		literal_varg = [type] IDENTIFIER [EQUAL expression] [PERIOD3];
 		assoc_array_element_list = assoc_array_element (COMMA assoc_array_element)*;
 		assoc_array_element = expression COLON expression;
 
 		# qualifiers #
-		class_qualifier = PUBLIC / PRIVATE / FINAL / STATIC;
-		trait_qualifier = PUBLIC / PRIVATE / STATIC;
-		enum_qualifier = PUBLIC / PRIVATE / STATIC;
-		template_qualifier = PUBLIC / PRIVATE;
-		alias_qualifier = PUBLIC / PRIVATE;
-		type_qualifier = CONST;
-		field_qualifier = PUBLIC / PRIVATE / PROTECTED / STATIC / FINAL / CONST;
-		method_qualifier = PUBLIC / PRIVATE / PROTECTED / STATIC / FINAL / CONST / OVERRIDE;
-		ctor_qualifier = PUBLIC / PRIVATE / PROTECTED / CONST;
-		lvar_qualifier = PRIVATE / PROTECTED / CONST / STATIC;
+		class_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ FINAL:t { return Qualifier(t.location, Qualifiers.Final); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); };
+		trait_qualifier =
+		 	 PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); };
+		enum_qualifier =
+		 	 PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); };
+		template_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); };
+		alias_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); };
+		type_qualifier = CONST:t { return Qualifier(t.location, Qualifiers.Const); };
+		field_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ PROTECTED:t { return Qualifier(t.location, Qualifiers.Protected); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); }
+			/ FINAL:t { return Qualifier(t.location, Qualifiers.Final); }
+			/ CONST:t { return Qualifier(t.location, Qualifiers.Const); };
+		method_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ PROTECTED:t { return Qualifier(t.location, Qualifiers.Protected); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); }
+			/ FINAL:t { return Qualifier(t.location, Qualifiers.Final); }
+			/ CONST:t { return Qualifier(t.location, Qualifiers.Const); }
+			/ OVERRIDE:t { return Qualifier(t.location, Qualifiers.Override); };
+		ctor_qualifier =
+			  PUBLIC:t { return Qualifier(t.location, Qualifiers.Public); }
+			/ PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ PROTECTED:t { return Qualifier(t.location, Qualifiers.Protected); }
+			/ CONST:t { return Qualifier(t.location, Qualifiers.Const); };
+		lvar_qualifier =
+			  PRIVATE:t { return Qualifier(t.location, Qualifiers.Private); }
+			/ PROTECTED:t { return Qualifier(t.location, Qualifiers.Protected); }
+			/ CONST:t { return Qualifier(t.location, Qualifiers.Const); }
+			/ STATIC:t { return Qualifier(t.location, Qualifiers.Static); };
 
 		# types for definition #
 		def_id = IDENTIFIER [LBR [def_id_arg_list] RBR];
@@ -252,19 +293,52 @@ parser
 		def_id_arg = IDENTIFIER (EQUAL type / COLON type / RARROW type)*;
 
 		# types for using #
-		type = type_qualifier* type_body;
-		type_body = (AUTO / restricted_type) [FUNCTION LP [varg_list] RP];
-		restricted_type = primitive_types (LBR [expression] RBR)*;
-		primitive_types = register_types / template_instance / __typeof;
-		__typeof = TYPEOF LP [expression / restricted_type] RP;
-		register_types = VOID / CHAR / UCHAR / BYTE / SHORT / USHORT / INT / UINT / LONG / ULONG;
-		template_instance = IDENTIFIER [template_tail];
-		template_tail = SHARP (single_types / LP [restricted_type (COMMA restricted_type)*] RP);
-		single_types = AUTO / single_restricted_type;
-		single_restricted_type = register_types / IDENTIFIER;
+		type =
+			{ auto tq = Qualifier(Location(int.max, int.max), 0); bool hasQualifier = false; }
+			(type_qualifier:tqq { tq = tq.combine(tqq); hasQualifier = true; })*
+			type_body:tb
+			{ return hasQualifier ? new QualifiedTypeNode(tq, tb) : tb; };
+		type_body = type_body_base:tbb
+			[FUNCTION LP varg_list:vpl RP { tbb = new FunctionTypeNode(tbb, vpl); }
+			/ FUNCTION LP RP { tbb = new FunctionTypeNode(tbb, null); }]
+			{ return tbb; };
+		type_body_base = AUTO:a { return new InferenceTypeNode(a.location); }
+			/ restricted_type:rt { return rt; };
+		restricted_type<TypeNode> = primitive_types:pt (LBR expression:e RBR { pt = new ArrayTypeNode(pt, e); }
+			/ LBR RBR { pt = new ArrayTypeNode(pt, null); })*
+			{ return pt; };
+		primitive_types<TypeNode> = register_types:rt { return rt; }
+			/ template_instance:ti { return ti; }
+			/ __typeof:to { return to; };
+		__typeof<TypeofNode> =
+			TYPEOF:f LP (expression:e RP { return new TypeofNode(f.location, e); }
+			/ restricted_type:rt RP { return new TypeofNode(f.location, rt); });
+		register_types<RegisterTypeNode> =
+			  VOID:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Void); }
+			/ CHAR:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Char); }
+			/ UCHAR:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uchar); }
+			/ BYTE:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Byte); }
+			/ SHORT:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Short); }
+			/ USHORT:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ushort); }
+			/ INT:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Int); }
+			/ UINT:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Uint); }
+			/ LONG:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Long); }
+			/ ULONG:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ulong); };
+		template_instance<TemplateInstanceTypeNode> =
+			IDENTIFIER:t [template_tail:v { return new TemplateInstanceTypeNode(t.location, t.text, v); }]
+			{ return new TemplateInstanceNode(t.location, t.text, null); };
+		template_tail<TypeNode[]> =
+			SHARP (single_types:st { return [st]; }
+			/ LP [restricted_type:first_t { auto types = [first_t]; } (COMMA restricted_type:second_t { types ~= second_t; })*] RP { return types; });
+		single_types<TypeNode> =
+			  AUTO:a { return new InferenceTypeNode(a.location); }
+			/ single_restricted_type:srt { return srt; };
+		single_restricted_type<TypeNode> =
+			  register_types:rt { return rt; }
+			/ IDENTIFIER:t { return new TemplateinstanceNode(t.location, t.text, null); };
 
 		# package paths #
-		import_list = import_item (COMMA import_item);
+		import_list = import_item (COMMA import_item)*;
 		import_item = IDENTIFIER (PERIOD IDENTIFIER)* [PERIOD ASTERISK / PERIOD LB import_list RB];
 		package_id = IDENTIFIER (PERIOD IDENTIFIER)*;
 	}
