@@ -12,11 +12,11 @@ public enum EnumTokenType
 	CA_EQ, LAB2_EQ, RAB2_EQ, AMPASAND2, VL2, CA2, PLUS, MINUS, ASTERISK, SLASH, 
 	PERCENT, AMPASAND, VL, CA, LAB2, RAB2, LAB, RAB, LAB_EQ, RAB_EQ, EQ2, EX_EQ, 
 	QUESTION, PLUS2, MINUS2, ASTERISK2, PERIOD2, PERIOD3, LP, RP, LB, RB, LBR, RBR, 
-	PACKAGE, IMPORT, CLASS, TRAIT, ENUM, EXTENDS, WITH, TEMPLATE, ALIAS, PROPERTY, 
-	FUNCTION, IF, ELSE, WHILE, DO, FOREACH, FOR, RETURN, BREAK, CONTINUE, SWITCH, 
-	CASE, DEFAULT, TYPEOF, THIS, SUPER, TRUE, FALSE, NULL, PUBLIC, PRIVATE, PROTECTED, 
-	FINAL, CONST, STATIC, OVERRIDE, AUTO, VOID, CHAR, UCHAR, BYTE, SHORT, USHORT, 
-	INT, UINT, LONG, ULONG, __INPUT_END__
+	PACKAGE, IMPORT, CLASS, TRAIT, ENUM, EXTENDS, WITH, TEMPLATE, ALIAS, USING, 
+	PROPERTY, FUNCTION, IF, ELSE, WHILE, DO, FOREACH, FOR, RETURN, BREAK, CONTINUE, 
+	SWITCH, CASE, DEFAULT, TYPEOF, THIS, SUPER, TRUE, FALSE, NULL, PUBLIC, PRIVATE, 
+	PROTECTED, FINAL, CONST, STATIC, OVERRIDE, AUTO, VOID, CHAR, UCHAR, BYTE, SHORT, 
+	USHORT, INT, UINT, LONG, ULONG, __INPUT_END__
 }
 public struct Location
 {
@@ -167,6 +167,7 @@ public auto tokenizeStr(string fileData)
 			parsingRange.matchExactly!("with", EnumTokenType.WITH), 
 			parsingRange.matchExactly!("template", EnumTokenType.TEMPLATE), 
 			parsingRange.matchExactly!("alias", EnumTokenType.ALIAS), 
+			parsingRange.matchExactly!("using", EnumTokenType.USING), 
 			parsingRange.matchExactly!("property", EnumTokenType.PROPERTY), 
 			parsingRange.matchExactly!("funcion", EnumTokenType.FUNCTION), 
 			parsingRange.matchExactly!("if", EnumTokenType.IF), 

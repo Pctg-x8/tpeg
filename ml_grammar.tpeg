@@ -84,6 +84,7 @@ tokenizer
 		WITH		"with"
 		TEMPLATE	"template"
 		ALIAS		"alias"
+		USING		"using"
 		PROPERTY	"property"
 		FUNCTION	"funcion"
 
@@ -142,46 +143,103 @@ import std.typecons, std.conv;
 	rules
 	{
 		# entry #
-		compilation_unit = [package_def] script_element*;
-		package_def = PACKAGE package_id SEMICOLON;
+		compilation_unit = { Token[] pn; DeclarationNode[] ds; }
+			[package_def:pd { pn = pd; }] (script_element:se { ds ~= se; })* { return new ScriptNode(pn, ds); };
+		package_def = PACKAGE package_id:pid SEMICOLON { return pid; };
 
 		# declarations #
-		script_element = import_decl / partial_package_def / class_def / trait_def / enum_def
-		 	/ template_def / alias_def / class_body;
-		import_decl = IMPORT import_list SEMICOLON;
-		partial_package_def = PACKAGE package_id (script_element / LB script_element* RB);
-		class_def = class_qualifier* CLASS def_id [EXTENDS type] (WITH type)*
-			(SEMICOLON / LB (import_decl / class_body)* RB);
-		class_body = field_def / method_def / property_def / ctor_def;
-		trait_def = trait_qualifier* TRAIT def_id (WITH type)*
-			(SEMICOLON / LB (import_decl / trait_body)* RB);
-		trait_body = method_def / property_def / ctor_def;
-		enum_def = enum_qualifier* ENUM IDENTIFIER
-			(SEMICOLON / LB import_decl* [enum_body] (import_decl / class_body)* RB);
-		enum_body = enum_element (COMMA enum_element)* [COMMA / SEMICOLON];
-		enum_element = IDENTIFIER [LP expression_list RP];
-		template_def = template_qualifier* TEMPLATE IDENTIFIER LP [template_arg_list] RP
-			(SEMICOLON / template_body / LB template_body* RB);
-		template_body = import_decl / class_def / trait_def / enum_def / template_def / alias_def;
-		alias_def = alias_qualifier* ALIAS (IDENTIFIER EQUAL type / type IDENTIFIER);
+		script_element<DeclarationNode> =
+			  import_decl:id		{ return id; } / partial_package_def:ppd	{ return ppd; }
+			/ class_def:cd			{ return cd; } / trait_def:td				{ return td; }
+			/ enum_def:ed			{ return ed; } / template_def:tmd			{ return tmd; }
+			/ alias_def:ad			{ return ad; } / class_body:cb				{ return cb; };
+		import_decl = IMPORT:ft import_list:il SEMICOLON { return new ImportDeclarationNode(ft.location, il); };
+		partial_package_def = PACKAGE:ft package_id:pid
+			( script_element:e { return new PartialPackageDeclarationNode(ft.location, pid, [e]); }
+			/ LB { DeclarationNode[] elms; } (script_element:se { elms ~= se; })* RB
+				{ return new PartialPackageDeclarationNode(ft.location, pid, elms); });
+		class_def = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); TypeNode ef; TypeNode[] wts; }
+			(class_qualifier:cq { q = q.combine(cq); })* CLASS:ft def_id:id [EXTENDS type:t { ef = t; }] (WITH type:wt { wts ~= wt; })*
+				( SEMICOLON { return new ClassDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id, ef, wts, null); }
+				/ LB { DeclarationNode[] dns; } (import_decl:idl { dns ~= idl; } / class_body:cb { dns ~= cb; })* RB
+					{ return new ClassDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id, ef, wts, dns); });
+		class_body<DeclarationNode> =
+			  field_def:fd		{ return fd; } / method_def:md	{ return md; }
+			/ property_def:pd	{ return pd; } / ctor_def:cd	{ return cd; }
+			/ alias_def:ad		{ return ad; } / statement:st	{ return new StaticInitializerNode(st); };
+		trait_def = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); TypeNode[] wts; }
+			(trait_qualifier:tq { q = q.combine(tq); })* TRAIT:ft def_id:id (WITH type:t { wts ~= t; })*
+				( SEMICOLON { return new TraitDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id, wts, null); }
+				/ LB { DeclarationNode[] dns; } (import_decl:idl { dns ~= idl; } / trait_body:tb { dns ~= tb; })* RB
+					{ return new TraitDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id, wts, dns); });
+		trait_body<DeclarationNode> =
+			  method_def:md	{ return md; } / property_def:pd	{ return pd; }
+			/ ctor_def:cd	{ return cd; } / alias_def:ad		{ return ad; };
+		enum_def = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(enum_qualifier:eq { q = q.combine(eq); })* ENUM:ft IDENTIFIER:id
+				( SEMICOLON { return new EnumDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id.text, null, null); }
+				/ LB { DeclarationNode[] nodes; EnumElementNode[] bodies; }
+					(import_decl:idl { nodes ~= idl; })* [enum_body:eb { bodies = eb; }] (import_decl:idl2 { nodes ~= idl2; } / class_body:cb { nodes ~= cb; })* RB
+					{ return new EnumDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id.text, bodies, nodes); });
+		enum_body = { EnumElementNode[] eens; }
+			enum_element:ee { eens ~= ee; } (COMMA enum_element:ee2 { eens ~= ee2; })* [COMMA / SEMICOLON] { return eens; };
+		enum_element = { ExpressionNode[] els; } IDENTIFIER:id [LP [expression_list:el { els = el; }] RP]
+			{ return new EnumElementNode(id.location, id.text, els); };
+		template_def = { TemplateVirtualParamNode[] template_vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(template_qualifier:tq { q = q.combine(tq); })* TEMPLATE:ft IDENTIFIER:id LP [template_arg_list:tvps { template_vps = tvps; }] RP
+				( SEMICOLON { return new TemplateDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id.text, template_vps, null); }
+				/ template_body:tb { return new TemplateDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id.text, template_vps, [tb]); }
+				/ LB { DeclarationNode[] child; } (template_body:tb { child ~= tb; })* RB
+					{ return new TemplateDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, id.text, template_vps, child); });
+		template_body<DeclarationNode> =
+			  import_decl:id	{ return id; } / class_def:cd		{ return cd; }
+			/ trait_def:td		{ return td; } / enum_def:ed		{ return ed; }
+			/ template_def:tmd	{ return tmd; } / alias_def:ad		{ return ad; };
+		alias_def = { DefinitionIdentifierNode id; TypeNode t; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(alias_qualifier:aq { q = q.combine(aq); })* USING:ft (def_id:did EQUAL type:tt { id = did; t = tt; } / type:tt def_id:did { id = did; t = tt; })
+				{ return new AliasDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, t, id); };
 
 		# body declarations #
-		field_def = (field_qualifier* type / field_qualifier+) field_def_list SEMICOLON;
-		field_def_list = nvpair (COMMA nvpair)*;
+		field_def = { TypeNode t = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			((field_qualifier:fq { q = q.combine(fq); })* type:tp { t = tp; } / (field_qualifier:fq { q = q.combine(fq); })+)
+				field_def_list:fdl SEMICOLON { return new FieldDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, fdl); };
+		field_def_list = { NameValuePair[] nvplist; } nvpair:nvp { nvplist ~= nvp; } (COMMA nvpair:nvp2 { nvplist ~= nvp2; })* { return nvplist; };
 		nvpair =
 			  IDENTIFIER:id EQUAL expression:e { return new NameValuePair(id.location, id.text, e); }
 			/ IDENTIFIER:id { return new NameValuePair(id.location, id.text, null); };
-		method_def = function_def / procedure_def / abstract_method_def;
-		procedure_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP statement;
-		function_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP EQUAL expression SEMICOLON;
-		abstract_method_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP SEMICOLON;
-		property_def = getter_def / setter_def;
-		setter_def = method_qualifier* PROPERTY [type] def_id LP type IDENTIFIER RP
-			(statement / SEMICOLON);
-		getter_def = method_qualifier* PROPERTY [type] def_id [LP RP]
-			(EQUAL expression SEMICOLON / statement / SEMICOLON);
-		ctor_def = ctor_qualifier* THIS LP [varg_list] RP
-			(statement / SEMICOLON);
+		method_def = function_def:fd { return fd; } / procedure_def:pd { return pd; } / abstract_method_def:amd { return amd; };
+		procedure_def = { TypeNode t = null; VirtualParamNode[] vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			((method_qualifier:mq {q = q.combine(mq);})* type:tt { t = tt; } / (method_qualifier:mq {q = q.combine(mq);})+)
+				def_id:id LP [varg_list:vpl { vps = vpl; }] RP statement:st
+				{ return new MethodDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, id, vps, st); };
+		function_def = { TypeNode t = null; VirtualParamNode[] vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			((method_qualifier:mq {q = q.combine(mq);})* type:tt { t = tt; } / (method_qualifier:mq {q = q.combine(mq);})+)
+				def_id:id LP [varg_list:vpl { vps = vpl; }] RP EQUAL expression:e SEMICOLON
+				{ return new MethodDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, id, vps, e); };
+		abstract_method_def = { TypeNode t = null; VirtualParamNode[] vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			((method_qualifier:mq {q = q.combine(mq);})* type:tt { t = tt; } / (method_qualifier:mq {q = q.combine(mq);})+)
+				def_id:id LP [varg_list:vpl { vps = vpl; }] RP SEMICOLON
+				{ return new MethodDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, id, vps); };
+		property_def<DeclarationNode> = getter_def:gd { return gd; } / setter_def:sd { return sd; };
+		setter_def = { TypeNode tp = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(method_qualifier:q2 { q = q.combine(q2); })* PROPERTY:ft [type:t { tp = t; }]
+				def_id:id LP tn_pair:p RP
+				( statement:st { return new SetterDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, tp, id, p, st); }
+				/ SEMICOLON { return new SetterDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, tp, id, p, null); });
+		getter_def = { TypeNode tp = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(method_qualifier:q2 { q = q.combine(q2); })* PROPERTY:ft [type:t { tp = t; }] def_id:id [LP RP]
+				( EQUAL expression:e SEMICOLON { return new GetterDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, tp, id, e); }
+				/ SEMICOLON { return new GetterDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, tp, id, null); }
+				/ statement:st { return new GetterDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, tp, id, st); });
+		ctor_def = full_ctor_def:fcd { return fcd; } / abs_ctor_def:acd { return acd; };
+		ctor_quals = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+			(ctor_qualifier:cq { q = q.combine(cq); })* { return q; };
+		full_ctor_def =
+			  ctor_quals:q THIS:ft LP varg_list:vl RP statement:st	{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, vl, st); }
+			/ ctor_quals:q THIS:ft LP RP statement:st				{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, null, st); };
+		abs_ctor_def =
+			  ctor_quals:q THIS:ft LP varg_list:vl RP SEMICOLON	{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, vl, null); }
+			/ ctor_quals:q THIS:ft LP RP SEMICOLON				{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, null, null); };
 
 		tn_pair =
 			  type:t IDENTIFIER:id { return new TypeNamePair(t.location, t, id.text); }
@@ -507,8 +565,13 @@ import std.typecons, std.conv;
 			/ IDENTIFIER:t { return new TemplateInstanceTypeNode(t.location, t.text, null); };
 
 		# package paths #
-		import_list = import_item (COMMA import_item)*;
-		import_item = IDENTIFIER (PERIOD IDENTIFIER)* [PERIOD ASTERISK / PERIOD LB import_list RB];
+		import_list<ImportUnitNode[]> = { ImportUnitNode[] ius; }
+			import_item:ii { ius ~= ii; } (COMMA import_item:ii2 { ius ~= ii2; })* { return ius; };
+		import_item<ImportUnitNode> = { string[] ppath; }
+			IDENTIFIER:ft { ppath ~= ft.text; } (PERIOD IDENTIFIER:st { ppath ~= st.text; })*
+				[ PERIOD ASTERISK { return new ImportUnitNode(ft.location, ppath, true); }
+				/ PERIOD LB import_list:sps RB { return new ImportUnitNode(ft.location, ppath, sps); }]
+				{ return new ImportUnitNode(ft.location, ppath, false); };
 		package_id<Token[]> = { Token[] ids; }
 			IDENTIFIER:t { ids ~= t; } (PERIOD IDENTIFIER:t2 { ids ~= t2; })* { return ids; };
 	}

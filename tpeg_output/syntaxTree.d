@@ -1,12 +1,13 @@
 module com.cterm2.ml.syntaxTree;
 
-import com.cterm2.ml.lexer : Location;
+import com.cterm2.ml.lexer;
 
 abstract class NodeBase
 {
     public abstract @property Location location();
 }
 
+abstract class DeclarationNode : NodeBase {}
 abstract class StatementNode : NodeBase {}
 abstract class ExpressionNode : StatementNode {}
 
@@ -43,7 +44,9 @@ enum Qualifiers : byte
     Final = 1 << 3,
     Static = 1 << 4,
     Const = 1 << 5,
-    Override = 1 << 6
+    Override = 1 << 6,
+
+    AccessibleMask = Public | Private | Protected
 }
 struct Qualifier
 {
@@ -58,10 +61,18 @@ struct Qualifier
     public @property isStatic(){ return this.isRaisedBit!(Qualifiers.Static); }
     public @property isConst(){ return this.isRaisedBit!(Qualifiers.Const); }
     public @property isOverride(){ return this.isRaisedBit!(Qualifiers.Override); }
+    public @property isAccessibleSpecified(){ return this.isRaisedBit!(Qualifiers.AccessibleMask); }
     public Qualifier combine(Qualifier q)
     {
         auto use_qloc = this.location.line > q.location.line && this.location.col > q.location.col;
-        return Qualifier(use_qloc ? q.location : this.location, q.q_values | this.q_values);
+        byte qval = q.q_values | this.q_values;
+        if(q.isAccessibleSpecified() && this.isAccessibleSpecified())
+        {
+            // conflict(use new)
+            qval &= ~Qualifiers.AccessibleMask;
+            qval |= this.q_values & Qualifiers.AccessibleMask;
+        }
+        return Qualifier(use_qloc ? q.location : this.location, qval);
     }
     public this(Location l, byte v)
     {
@@ -937,5 +948,388 @@ final class ConditionalNode : StatementNode
         this.cond = c;
         this._then = t;
         this._not = n;
+    }
+}
+
+// Declarations //
+final class ConstructorDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    VirtualParamNode[] _params;
+    StatementNode stmt;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property params(){ return this._params; }
+    public @property statement(){ return this.stmt; }
+
+    public this(Location l, Qualifier q, VirtualParamNode[] vps, StatementNode st)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._params = vps;
+        this.stmt = st;
+    }
+}
+final class GetterDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    TypeNode _type;
+    DefinitionIdentifierNode _name;
+    StatementNode stmt;
+    ExpressionNode expr;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property type(){ return this._type; }
+    public @property name(){ return this._name; }
+    public @property statement(){ return this.stmt; }
+    public @property expression(){ return this.expr; }
+    public @property isPure(){ return this.expr !is null; }
+    public @property isAbstract(){ return this.expr is null && this.stmt is null; }
+
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+    }
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, StatementNode s)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this.stmt = s;
+    }
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, ExpressionNode e)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this.expr = e;
+    }
+}
+final class SetterDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    TypeNode _type;
+    DefinitionIdentifierNode _name;
+    TypeNamePair _param;
+    StatementNode stmt;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property type(){ return this._type; }
+    public @property name(){ return this._name; }
+    public @property param(){ return this._param; }
+    public @property statement(){ return this.stmt; }
+    public @property isAbstract(){ return this.stmt is null; }
+
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, TypeNamePair p, StatementNode s)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this._param = p;
+        this.stmt = s;
+    }
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, TypeNamePair p)
+    {
+        this(l, q, t, n, p, null);
+    }
+}
+final class MethodDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    TypeNode _type;
+    DefinitionIdentifierNode _name;
+    VirtualParamNode[] _vparams;
+    StatementNode stmt;
+    ExpressionNode expr;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property type(){ return this._type; }
+    public @property name(){ return this._name; }
+    public @property vparams(){ return this._vparams; }
+    public @property statement(){ return this.stmt; }
+    public @property expression(){ return this.expr; }
+    public @property isPure(){ return this.expr !is null; }
+    public @property isAbstract(){ return this.expr is null && this.stmt is null; }
+
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, VirtualParamNode[] vps)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this._vparams = vps;
+    }
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, VirtualParamNode[] vps, StatementNode st)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this._vparams = vps;
+        this.stmt = st;
+    }
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n, VirtualParamNode[] vps, ExpressionNode ex)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+        this._vparams = vps;
+        this.expr = ex;
+    }
+}
+final class FieldDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    TypeNode _type;
+    NameValuePair[] nvps;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property type(){ return this._type; }
+    public @property declarators(){ return this.nvps; }
+
+    public this(Location l, Qualifier q, TypeNode t, NameValuePair[] nvps)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this.nvps = nvps;
+    }
+}
+
+// Structure/Toplevel Declaration //
+final class AliasDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    TypeNode _type;
+    DefinitionIdentifierNode _name;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return qual; }
+    public @property type(){ return this._type; }
+    public @property name(){ return this._name; }
+
+    public this(Location l, Qualifier q, TypeNode t, DefinitionIdentifierNode n)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._type = t;
+        this._name = n;
+    }
+}
+final class TemplateDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    string _name;
+    TemplateVirtualParamNode[] tvps;
+    DeclarationNode[] decls;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property name(){ return this._name; }
+    public @property params(){ return this.tvps; }
+    public @property declarators(){ return this.decls; }
+
+    public this(Location l, Qualifier q, string n, TemplateVirtualParamNode[] tvps, DeclarationNode[] ds)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._name = n;
+        this.tvps = tvps;
+        this.decls = ds;
+    }
+}
+final class EnumElementNode : NodeBase
+{
+    Location loc;
+    string _name;
+    ExpressionNode[] ctor_params;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+    public @property ctorParams(){ return this.ctor_params; }
+
+    public this(Location l, string n, ExpressionNode[] cp)
+    {
+        this.loc = l;
+        this._name = n;
+        this.ctor_params = cp;
+    }
+}
+final class EnumDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    string _name;
+    EnumElementNode[] _elements;
+    DeclarationNode[] class_body;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property name(){ return this._name; }
+    public @property elements(){ return this._elements; }
+    public @property classBody(){ return this.class_body; }
+
+    public this(Location l, Qualifier q, string n, EnumElementNode[] es, DeclarationNode[] cb)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._name = n;
+        this._elements = es;
+        this.class_body = cb;
+    }
+}
+final class TraitDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    DefinitionIdentifierNode _name;
+    TypeNode[] with_traits;
+    DeclarationNode[] trait_body;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property name(){ return this._name; }
+    public @property withTraits(){ return this.with_traits; }
+    public @property traitBody(){ return this.trait_body; }
+
+    public this(Location l, Qualifier q, DefinitionIdentifierNode n, TypeNode[] wt, DeclarationNode[] tb)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._name = n;
+        this.with_traits = wt;
+        this.trait_body = tb;
+    }
+}
+final class ClassDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Qualifier qual;
+    DefinitionIdentifierNode _name;
+    TypeNode extended_from;
+    TypeNode[] with_traits;
+    DeclarationNode[] class_body;
+
+    public override @property Location location(){ return this.loc; }
+    public @property qualifier(){ return this.qual; }
+    public @property name(){ return this._name; }
+    public @property extendedFrom(){ return this.extended_from; }
+    public @property withTraits(){ return this.with_traits; }
+    public @property classBody(){ return this.class_body; }
+
+    public this(Location l, Qualifier q, DefinitionIdentifierNode n, TypeNode ef, TypeNode[] wt, DeclarationNode[] cb)
+    {
+        this.loc = l;
+        this.qual = q;
+        this._name = n;
+        this.extended_from = ef;
+        this.with_traits = wt;
+        this.class_body = cb;
+    }
+}
+final class PartialPackageDeclarationNode : DeclarationNode
+{
+    Location loc;
+    Token[] _name;
+    DeclarationNode[] nodes;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+    public @property elements(){ return this.nodes; }
+
+    public this(Location l, Token[] n, DeclarationNode[] ns)
+    {
+        this.loc = l;
+        this._name = n;
+        this.nodes = ns;
+    }
+}
+final class ImportUnitNode : DeclarationNode
+{
+    Location loc;
+    string[] base_path;
+    bool is_wildcard;
+    ImportUnitNode[] sub_paths;
+
+    public override @property Location location(){ return this.loc; }
+    public @property basePath(){ return this.base_path; }
+    public @property isWildcard(){ return this.is_wildcard; }
+    public @property subPaths(){ return this.sub_paths; }
+
+    public this(Location l, string[] bp, bool iw)
+    {
+        this.loc = l;
+        this.base_path = bp;
+        this.is_wildcard = iw;
+    }
+    public this(Location l, string[] bp, ImportUnitNode[] sp)
+    {
+        this.loc = l;
+        this.base_path = bp;
+        this.is_wildcard = false;
+        this.sub_paths = sp;
+    }
+}
+final class ImportDeclarationNode : DeclarationNode
+{
+    Location loc;
+    ImportUnitNode[] units;
+
+    public override @property Location location(){ return this.loc; }
+    public @property items(){ return this.units; }
+
+    public this(Location l, ImportUnitNode[] us)
+    {
+        this.loc = l;
+        this.units = us;
+    }
+}
+final class StaticInitializerNode : DeclarationNode
+{
+    // Wrapper for StatementNode to DeclarationNode conversion
+    StatementNode st;
+
+    public override @property Location location(){ return this.st.location; }
+    public @property statement(){ return this.st; }
+
+    public this(StatementNode st)
+    {
+        this.st = st;
+    }
+}
+
+// Script //
+final class ScriptNode : NodeBase
+{
+    Token[] package_name;
+    DeclarationNode[] decls;
+
+    public override @property Location location(){ return Location(1, 1); }
+    public @property packageName(){ return this.package_name; }
+    public @property declarators(){ return this.decls; }
+
+    public this(Token[] pn, DeclarationNode[] ds)
+    {
+        this.package_name = pn;
+        this.decls = ds;
     }
 }

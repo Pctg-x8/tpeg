@@ -281,7 +281,7 @@ class ProcessTreeGenerator : IVisitor
             break;
         case EnumCurrentState.None:
             node.inner.accept(this);
-            this.generatedTree = [new ReferenceRange("child[0]", [new HasValueReferenceRange("child", 0, this.generatedTree)])];
+            this.generatedTree = [new HasValueReferenceRange("child", 0, this.generatedTree)];
             break;
         default: break;
         }

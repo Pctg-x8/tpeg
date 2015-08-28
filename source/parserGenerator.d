@@ -356,7 +356,13 @@ class ParserGenerator : IVisitor
                 this.currentState = EnumCurrentState.GenerateParserUsingCode;
                 foreach(n; node.nodes)
                 {
-                    if(typeid(n) == typeid(PEGActionNode)) continue;
+                    if(typeid(n) == typeid(PEGActionNode))
+                    {
+                    	// register dummy
+                    	this.currentFile.writeln(3.toTabs, "/* DUMMY FOR ACTION REFERENCING */");
+                    	this.currentFile.writeln(3.toTabs, "retrun ResultType(true, r, r, new PartialTreeType([null]));");
+                    	continue;
+                	}
                     this.currentFile.writeln();
                     this.currentFile.write(3.toTabs, "resTemp = ");
                     n.accept(this);
@@ -401,7 +407,13 @@ class ParserGenerator : IVisitor
                 this.currentState = EnumCurrentState.GenerateParserUsingCode;
                 foreach(n; node.nodes)
                 {
-                    if(typeid(n) == typeid(PEGActionNode)) continue;
+                    if(typeid(n) == typeid(PEGActionNode))
+                    {
+                    	// register dummy
+                    	this.currentFile.writeln(3.toTabs, "/* DUMMY FOR ACTION REFERENCING */");
+                    	this.currentFile.writeln(3.toTabs, "treeList ~= null;");
+                    	continue;
+                	}
                     this.currentFile.writeln();
                     this.currentFile.write(3.toTabs, "resTemp = ");
                     n.accept(this);
@@ -560,11 +572,13 @@ class ParserGenerator : IVisitor
         uint exTabs;
         bool[] switchingStack;
         uint partialConditionalOrdinal;
+		uint treeRefCount;
 
         public void resetStacks()
         {
             this.referenceStack = ["node"];
             this.exTabs = 0;
+            this.treeRefCount = 1;
             this.switchingStack = [false];
         }
 
@@ -614,9 +628,11 @@ class ParserGenerator : IVisitor
                 "(cast(TokenTree)(", this.referenceStack.join("."), ")).token.type == EnumTokenType.", node.tokenType, ")");
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{");
             this.exTabs++;
-            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto __tree_ref__ = cast(TokenTree)(", this.referenceStack.join("."), ");");
+            auto treeRefName = "__tree_ref__" ~ this.treeRefCount.to!string;
+            this.treeRefCount++;
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto "~treeRefName~" = cast(TokenTree)(", this.referenceStack.join("."), ");");
             auto prevStack = this.referenceStack;
-            this.referenceStack = ["__tree_ref__"];
+            this.referenceStack = [treeRefName];
             foreach(n; node.innerTrees) n.accept(this);
             this.referenceStack = prevStack;
             this.exTabs--;
@@ -637,9 +653,11 @@ class ParserGenerator : IVisitor
             }
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{");
             this.exTabs++;
-            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto __tree_ref__ = cast(RuleTree!", node.ruleName, ")(", this.referenceStack.join("."), ");");
+            auto treeRefName = "__tree_ref__" ~ this.treeRefCount.to!string;
+            this.treeRefCount++;
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto "~treeRefName~" = cast(RuleTree!", node.ruleName, ")(", this.referenceStack.join("."), ");");
             auto prevStack = this.referenceStack;
-            this.referenceStack = ["__tree_ref__"];
+            this.referenceStack = [treeRefName];
             foreach(n; node.innerTrees) n.accept(this);
             this.referenceStack = prevStack;
             this.exTabs--;
@@ -660,9 +678,11 @@ class ParserGenerator : IVisitor
             }
             this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "{");
             this.exTabs++;
-            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto __tree_ref__ = cast(PartialTree!", node.partialOrdinal, ")(", this.referenceStack.join("."), ");");
+            auto treeRefName = "__tree_ref__" ~ this.treeRefCount.to!string;
+            this.treeRefCount++;
+            this.outer.currentFile.writeln((2 + this.exTabs).toTabs, "auto "~treeRefName~" = cast(PartialTree!", node.partialOrdinal, ")(", this.referenceStack.join("."), ");");
             auto prevStack = this.referenceStack;
-            this.referenceStack = ["__tree_ref__"];
+            this.referenceStack = [treeRefName];
             foreach(n; node.innerTrees) n.accept(this);
             this.referenceStack = prevStack;
             this.exTabs--;
