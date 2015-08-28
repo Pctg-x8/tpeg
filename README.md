@@ -1,7 +1,7 @@
 # TPEG
 Tokenized-PEG Parser Generator Tool  
 トークン分割してPackrat Parsingするコードを自動生成するツールが欲しかったので作りました。  
-今のところD言語のみ出力できる予定。
+※記述言語の仕様がD言語にひどく依存するようになってしまったのでD言語のみ出力可能とします。
 
 ## Samples
 /calc.tpegを参照してください。
