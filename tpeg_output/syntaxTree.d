@@ -203,7 +203,7 @@ final class VirtualParamNode : NodeBase
     {
         this._type = t;
         this._name = n;
-        this.default_value = dc;
+        this.default_value = dv;
         this.is_variadic = iv;
     }
 }
@@ -328,7 +328,7 @@ final class DefinitionIdentifierNode : NodeBase
     DefinitionIdentifierParamNode[] _params;
 
     public override @property Location location(){ return this.loc; }
-    public @property name(){ return this.name; }
+    public @property name(){ return this._name; }
     public @property params(){ return this._params; }
     public @property hasParameter(){ return this._params !is null; }
 
@@ -343,8 +343,6 @@ final class AssocArrayElementNode : ExpressionNode
 {
     ExpressionNode[2] _expressions;
 
-    invariant { assert(this._expressions !is null); }
-
     public override @property Location location(){ return this._expressions[0].location; }
     public @property keyExpression(){ return this._expressions[0]; }
     public @property valueExpression(){ return this._expressions[1]; }
@@ -352,6 +350,40 @@ final class AssocArrayElementNode : ExpressionNode
     public this(ExpressionNode key, ExpressionNode val)
     {
         this._expressions = [key, val];
+    }
+}
+final class NameValuePair
+{
+    Location loc;
+    string _name;
+    ExpressionNode _value;
+
+    public @property location(){ return this.loc; }
+    public @property name(){ return this._name; }
+    public @property value(){ return this._value; }
+
+    public this(Location l, string n, ExpressionNode v)
+    {
+        this.loc = l;
+        this._name = n;
+        this._value = v;
+    }
+}
+final class TypeNamePair
+{
+    Location l;
+    TypeNode _type;
+    string _name;
+
+    public @property location(){ return this.l; }
+    public @property type(){ return this._type; }
+    public @property name(){ return this._name; }
+
+    public this(Location l, TypeNode t, string n)
+    {
+        this.l = l;
+        this._type = t;
+        this._name = n;
     }
 }
 
@@ -372,8 +404,8 @@ final class FunctionLiteralNode : ExpressionNode
 {
     Location loc;
     VirtualParamNode[] _vparams;
-    StatementNode[] _stmt;
-    ExpressionNode[] _expr;
+    StatementNode _stmt;
+    ExpressionNode _expr;
 
     invariant { assert((this._stmt !is null) != (this._expr !is null)); }
 
@@ -430,6 +462,8 @@ final class AssocArrayLiteralNode : ExpressionNode
         this.elist = el;
     }
 }
+
+// Expressions //
 final class TemplateInstantiateNode : ExpressionNode
 {
     Location loc;
@@ -459,5 +493,449 @@ final class IdentifierReferenceNode : ExpressionNode
     {
         this.loc = l;
         this.ref_name = rn;
+    }
+}
+final enum UnaryOperatorType
+{
+    Increase, Decrease, Square, Funcall, ArrayRef, ObjectRef, Casting, Negate
+}
+class PostOperatorNode : ExpressionNode
+{
+    ExpressionNode _target;
+    UnaryOperatorType _op;
+
+    public override @property Location location(){ return this.target.location; }
+    public @property target(){ return this._target; }
+    public @property operator(){ return this._op; }
+
+    public this(ExpressionNode t, UnaryOperatorType o)
+    {
+        this._target = t;
+        this._op = o;
+    }
+}
+final class FuncallNode : PostOperatorNode
+{
+    ExpressionNode[] _params;
+
+    public @property params(){ return this._params; }
+
+    public this(ExpressionNode e, ExpressionNode[] ps)
+    {
+        super(e, UnaryOperatorType.Funcall);
+        this._params = ps;
+    }
+}
+final class ArrayRefNode : PostOperatorNode
+{
+    ExpressionNode[] _dims;
+
+    public @property dimensions(){ return this._dims; }
+
+    public this(ExpressionNode e, ExpressionNode[] ds)
+    {
+        super(e, UnaryOperatorType.ArrayRef);
+        this._dims = ds;
+    }
+}
+final class ObjectRefNode : PostOperatorNode
+{
+    ExpressionNode _name;
+
+    public @property name(){ return this._name; }
+
+    public this(ExpressionNode e, ExpressionNode r)
+    {
+        super(e, UnaryOperatorType.ObjectRef);
+        this._name = r;
+    }
+}
+final class CastingNode : PostOperatorNode
+{
+    TypeNode _type;
+
+    public @property type(){ return this._type; }
+
+    public this(ExpressionNode e, TypeNode t)
+    {
+        super(e, UnaryOperatorType.Casting);
+        this._type = t;
+    }
+}
+final class PreOperatorNode : ExpressionNode
+{
+    Location loc;
+    ExpressionNode _target;
+    UnaryOperatorType _op;
+
+    public override @property Location location(){ return this.loc; }
+    public @property target(){ return this._target; }
+    public @property operator(){ return this._op; }
+
+    public this(Location l, ExpressionNode t, UnaryOperatorType o)
+    {
+        this.loc = l;
+        this._target = t;
+        this._op = o;
+    }
+}
+final enum BinaryOperatorType
+{
+    Ranged, Mod, Div, Mul, Sub, Add, Xor, Or, And, LeftShift, RightShift,
+    Equiv, Inequiv, Less, Greater, LessEq, GreaterEq, LogAnd, LogOr, LogXor
+}
+final class BinaryOperatorNode : ExpressionNode
+{
+    ExpressionNode _left, _right;
+    BinaryOperatorType _op;
+
+    public override @property Location location(){ return this._left.location; }
+    public @property left(){ return this._left; }
+    public @property right(){ return this._right; }
+    public @property operator(){ return this._op; }
+
+    public this(ExpressionNode l, BinaryOperatorType o, ExpressionNode r)
+    {
+        this._left = l;
+        this._op = o;
+        this._right = r;
+    }
+}
+final class AlternateValueNode : ExpressionNode
+{
+    ExpressionNode cond, _then, _not;
+
+    public override @property Location location(){ return this.cond.location; }
+    public @property condition(){ return this.cond; }
+    public @property then(){ return this._then; }
+    public @property not(){ return this._not; }
+
+    public this(ExpressionNode c, ExpressionNode t, ExpressionNode n)
+    {
+        this.cond = c;
+        this._then = t;
+        this._not = n;
+    }
+}
+final class AssignOperatorNode : ExpressionNode
+{
+    ExpressionNode _left, _right;
+
+    public override @property Location location(){ return this._left.location; }
+    public @property left(){ return this._left; }
+    public @property right(){ return this._right; }
+
+    public this(ExpressionNode l, ExpressionNode r)
+    {
+        this._left = l;
+        this._right = r;
+    }
+}
+final class OperatedAssignNode : ExpressionNode
+{
+    ExpressionNode _left, _right;
+    BinaryOperatorType _op;
+
+    public override @property Location location(){ return this._left.location; }
+    public @property left(){ return this._left; }
+    public @property right(){ return this._right; }
+    public @property operator(){ return this._op; }
+
+    public this(ExpressionNode l, BinaryOperatorType t, ExpressionNode r)
+    {
+        this._left = l;
+        this._op = t;
+        this._right = r;
+    }
+}
+
+// Statement //
+final class LocalVariableDeclarationNode : StatementNode
+{
+    Location iloc;
+    Qualifier _qual;
+    TypeNode _type;
+    NameValuePair[] decls;
+
+    public override @property Location location(){ return this.iloc; }
+    public @property qualifier(){ return this._qual; }
+    public @property type(){ return this._type; }
+    public @property declarators(){ return this.decls; }
+
+    public this(Location il, Qualifier q, TypeNode t, NameValuePair[] nvp)
+    {
+        this.iloc = il;
+        this._qual = q;
+        this._type = t;
+        this.decls = nvp;
+    }
+}
+final class BlockStatementNode : StatementNode
+{
+    Location loc;
+    StatementNode[] inner;
+
+    public override @property Location location(){ return this.loc; }
+    public @property innerElements(){ return this.inner; }
+
+    public this(Location l, StatementNode[] st)
+    {
+        this.loc = l;
+        this.inner = st;
+    }
+}
+class SwitchSectionNode : NodeBase
+{
+    Location loc;
+    StatementNode following_stmt;
+
+    public final override @property Location location(){ return this.loc; }
+    public final @property followingStmt(){ return this.following_stmt; }
+
+    public this(Location l, StatementNode fs)
+    {
+        this.loc = l;
+        this.following_stmt = fs;
+    }
+}
+final class DefaultSectionNode : SwitchSectionNode
+{
+    public this(Location l, StatementNode fs)
+    {
+        super(l, fs);
+    }
+}
+final class ValueCaseSectionNode : SwitchSectionNode
+{
+    ExpressionNode[] _values;
+
+    public @property values(){ return this._values; }
+
+    public this(Location l, ExpressionNode[] vs, StatementNode fs)
+    {
+        super(l, fs);
+        this._values = vs;
+    }
+}
+final class TypeCaseSectionNode : SwitchSectionNode
+{
+    bool is_const_restraint;
+    DefinitionIdentifierNode _name;
+    TypeNode _type;
+    ExpressionNode cond;
+
+    public @property isConstRestraint(){ return this.is_const_restraint; }
+    public @property name(){ return this._name; }
+    public @property type(){ return this._type; }
+    public @property condition(){ return this.cond; }
+
+    public this(Location l, bool icr, DefinitionIdentifierNode n, TypeNode t, ExpressionNode c, StatementNode fs)
+    {
+        super(l, fs);
+        this.is_const_restraint = icr;
+        this._name = n;
+        this._type = t;
+        this.cond = c;
+    }
+}
+final class SwitchStatementNode : StatementNode
+{
+    Location loc;
+    ExpressionNode _target;
+    SwitchSectionNode[] sects;
+
+    public override @property Location location(){ return this.loc; }
+    public @property target(){ return this._target; }
+    public @property sections(){ return this.sects; }
+
+    public this(Location l, ExpressionNode t, SwitchSectionNode[] ss)
+    {
+        this.loc = l;
+        this._target = t;
+        this.sects = ss;
+    }
+}
+final class ContinueLoopNode : StatementNode
+{
+    Location loc;
+    string _name;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+
+    public this(Location l, string n)
+    {
+        this.loc = l;
+        this._name = n;
+    }
+}
+final class BreakLoopNode : StatementNode
+{
+    Location loc;
+    string _name;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+
+    public this(Location l, string n)
+    {
+        this.loc = l;
+        this._name = n;
+    }
+}
+final class ReturnNode : StatementNode
+{
+    Location loc;
+    ExpressionNode _value;
+
+    public override @property Location location(){ return this.loc; }
+    public @property value(){ return this._value; }
+
+    public this(Location l, ExpressionNode v)
+    {
+        this.loc = l;
+        this._value = v;
+    }
+}
+abstract class NamedStatementNode : StatementNode
+{
+    Location loc;
+    string _name;
+
+    public override @property Location location(){ return this.loc; }
+    public @property name(){ return this._name; }
+
+    public abstract typeof(this) clone();
+    public auto withName(string n)
+    {
+        auto obj = this.clone();
+        obj._name = n;
+        return obj;
+    }
+
+    public this(Location l, string n)
+    {
+        this.loc = l;
+        this._name = n;
+    }
+}
+final class ForStatementNode : NamedStatementNode
+{
+    ExpressionNode[3] expr;
+    StatementNode stmt;
+
+    public @property init(){ return this.expr[0]; }
+    public @property cond(){ return this.expr[1]; }
+    public @property step(){ return this.expr[2]; }
+    public @property statement(){ return this.stmt; }
+
+    public override typeof(this) clone()
+    {
+        return new ForStatementNode(this.location, this.name, this.init, this.cond, this.step, this.statement);
+    }
+
+    public this(Location l, string n, ExpressionNode i, ExpressionNode c, ExpressionNode s, StatementNode st)
+    {
+        super(l, n);
+        this.expr = [i, c, s];
+        this.stmt = st;
+    }
+    public this(Location l, ExpressionNode i, ExpressionNode c, ExpressionNode s, StatementNode st)
+    {
+        this(l, null, i, c, s, st);
+    }
+}
+final class ForeachStatementNode : NamedStatementNode
+{
+    TypeNamePair[] tnps;
+    ExpressionNode _target;
+    StatementNode stmt;
+
+    public @property typeNamePairs(){ return this.tnps; }
+    public @property target(){ return this._target; }
+    public @property statement(){ return this.stmt; }
+
+    public override typeof(this) clone()
+    {
+        return new ForeachStatementNode(this.location, this.name, this.typeNamePairs, this.target, this.statement);
+    }
+
+    public this(Location l, string n, TypeNamePair[] t, ExpressionNode tg, StatementNode s)
+    {
+        super(l, n);
+        this.tnps = t;
+        this._target = tg;
+        this.stmt = s;
+    }
+    public this(Location l, TypeNamePair[] t, ExpressionNode tg, StatementNode s)
+    {
+        this(l, null, t, tg, s);
+    }
+}
+final class PostConditionLoopNode : NamedStatementNode
+{
+    ExpressionNode cond;
+    StatementNode stmt;
+
+    public @property condition(){ return this.cond; }
+    public @property statement(){ return this.stmt; }
+
+    public override typeof(this) clone()
+    {
+        return new PostConditionLoopNode(this.location, this.name, this.condition, this.statement);
+    }
+
+    public this(Location l, string n, ExpressionNode c, StatementNode s)
+    {
+        super(l, n);
+        this.cond = c;
+        this.stmt = s;
+    }
+    public this(Location l, ExpressionNode c, StatementNode s)
+    {
+        this(l, null, c, s);
+    }
+}
+final class PreConditionLoopNode : NamedStatementNode
+{
+    ExpressionNode cond;
+    StatementNode stmt;
+
+    public @property condition(){ return this.cond; }
+    public @property statement(){ return this.stmt; }
+
+    public override typeof(this) clone()
+    {
+        return new PreConditionLoopNode(this.location, this.name, this.condition, this.statement);
+    }
+
+    public this(Location l, string n, ExpressionNode c, StatementNode s)
+    {
+        super(l, n);
+        this.cond = c;
+        this.stmt = s;
+    }
+    public this(Location l, ExpressionNode c, StatementNode s)
+    {
+        this(l, null, c, s);
+    }
+}
+final class ConditionalNode : StatementNode
+{
+    Location loc;
+    ExpressionNode cond;
+    StatementNode _then, _not;
+
+    public override @property Location location(){ return this.loc; }
+    public @property condition(){ return this.cond; }
+    public @property then(){ return this._then; }
+    public @property not(){ return this._not; }
+
+    public this(Location l, ExpressionNode c, StatementNode t, StatementNode n)
+    {
+        this.loc = l;
+        this.cond = c;
+        this._then = t;
+        this._not = n;
     }
 }

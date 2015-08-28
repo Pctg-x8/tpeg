@@ -168,7 +168,9 @@ import std.typecons, std.conv;
 		# body declarations #
 		field_def = (field_qualifier* type / field_qualifier+) field_def_list SEMICOLON;
 		field_def_list = nvpair (COMMA nvpair)*;
-		nvpair = IDENTIFIER [EQUAL expression];
+		nvpair =
+			  IDENTIFIER:id EQUAL expression:e { return new NameValuePair(id.location, id.text, e); }
+			/ IDENTIFIER:id { return new NameValuePair(id.location, id.text, null); };
 		method_def = function_def / procedure_def / abstract_method_def;
 		procedure_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP statement;
 		function_def = (method_qualifier* type / method_qualifier+) def_id LP [varg_list] RP EQUAL expression SEMICOLON;
@@ -181,43 +183,148 @@ import std.typecons, std.conv;
 		ctor_def = ctor_qualifier* THIS LP [varg_list] RP
 			(statement / SEMICOLON);
 
+		tn_pair =
+			  type:t IDENTIFIER:id { return new TypeNamePair(t.location, t, id.text); }
+			/ IDENTIFIER:id { return new TypeNamePair(id.location, null, id.text); };
+		tn_list = { TypeNamePair[] tnps; } tn_pair:tnp { tnps ~= tnp; } (COMMA tn_pair:tnp2 { tnps ~= tnp2; })* { return tnps; };
+
 		# statements #
-		statement = if_stmt / while_stmt / do_stmt / foreach_stmt / for_stmt / return_stmt /
-			break_stmt / continue_stmt / label_stmt / switch_stmt / block_stmt / expression SEMICOLON / SEMICOLON;
-		if_stmt = IF LP expression RP statement [ELSE statement];
-		while_stmt = WHILE LP expression RP statement;
-		do_stmt = DO statement WHILE LP expression RP SEMICOLON;
-		foreach_stmt = FOREACH LP [type] IDENTIFIER LARROW expression RP statement;
-		for_stmt = FOR LP [expression] SEMICOLON [expression] SEMICOLON [expression] RP statement;
-		return_stmt = RETURN [expression] SEMICOLON;
-		break_stmt = BREAK [IDENTIFIER] SEMICOLON;
-		continue_stmt = CONTINUE [IDENTIFIER] SEMICOLON;
-		label_stmt = IDENTIFIER COLON;
-		switch_stmt = SWITCH LP expression RP LB (case_stmt / default_stmt)* RB;
-		case_stmt = CASE (expression_list / [CONST] def_id COLON type [IF expression]) RARROW2 statement;
-		default_stmt = DEFAULT RARROW2 statement;
-		block_stmt = LBR (localvar_def / statement)* RBR;
-		localvar_def = (lvar_qualifier* type / lvar_qualifier+) nvpair (COMMA nvpair)* SEMICOLON;
+		statement<StatementNode> =
+		 	  if_stmt:ifs				{ return ifs; }
+			/ while_stmt:ws				{ return ws; }
+			/ do_stmt:ds				{ return ds; }
+			/ foreach_stmt:fes			{ return fes; }
+			/ for_stmt:fs				{ return fs; }
+			/ return_stmt:rs			{ return rs; }
+			/ break_stmt:bs				{ return bs; }
+			/ continue_stmt:cs			{ return cs; }
+			/ switch_stmt:ss			{ return ss; }
+			/ block_stmt:bls			{ return bls; }
+			/ expression:e SEMICOLON	{ return e; }
+			/ SEMICOLON					{ return null; };
+		if_stmt =
+			  IF:ft LP expression:c RP statement:t ELSE statement:n	{ return new ConditionalNode(ft.location, c, t, n); }
+			/ IF:ft LP expression:c RP statement:t					{ return new ConditionalNode(ft.location, c, t, null); };
+		while_stmt =
+			  IDENTIFIER:id COLON WHILE:ft LP expression:e RP statement:st { return new PreConditionLoopNode(ft.location, id.text, e, st); }
+			/ WHILE:ft LP expression:e RP statement:st { return new PreConditionLoopNode(ft.location, e, st); };
+		do_stmt =
+			  IDENTIFIER:id COLON DO:ft statement:st WHILE LP expression:c RP SEMICOLON { return new PostConditionLoopNode(ft.location, id.text, c, st); }
+			/ DO:ft statement:st WHILE LP expression:c RP SEMICOLON { return new PostConditionLoopNode(ft.location, c, st); };
+		foreach_stmt =
+			  IDENTIFIER:id COLON foreach_stmt_impl:fs { return fs.withName(id.text); }
+			/ foreach_stmt_impl:fs { return fs; };
+		foreach_stmt_impl =
+			FOREACH:ft LP tn_list:tnl LARROW expression:e RP statement:st { return new ForeachStatementNode(ft.location, tnl, e, st); };
+		for_stmt =
+			  IDENTIFIER:id COLON for_stmt_impl:fs { return fs.withName(id.text); }
+			/ for_stmt_impl:fs { return fs; };
+		for_stmt_impl =
+			  FOR:ft LP expression:e SEMICOLON expression:e2 SEMICOLON expression:e3 RP statement:st { return new ForStatementNode(ft.location, e, e2, e3, st); }
+			/ FOR:ft LP expression:e SEMICOLON expression:e2 SEMICOLON RP statement:st { return new ForStatementNode(ft.location, e, e2, null, st); }
+			/ FOR:ft LP expression:e SEMICOLON SEMICOLON expression:e3 RP statement:st { return new ForStatementNode(ft.location, e, null, e3, st); }
+			/ FOR:ft LP expression:e SEMICOLON SEMICOLON RP statement:st { return new ForStatementNode(ft.location, e, null, null, st); }
+			/ FOR:ft LP SEMICOLON expression:e2 SEMICOLON expression:e3 RP statement:st { return new ForStatementNode(ft.location, null, e2, e3, st); }
+			/ FOR:ft LP SEMICOLON expression:e2 SEMICOLON RP statement:st { return new ForStatementNode(ft.location, null, e2, null, st); }
+			/ FOR:ft LP SEMICOLON SEMICOLON expression:e3 RP statement:st { return new ForStatementNode(ft.location, null, null, e3, st); }
+			/ FOR:ft LP SEMICOLON SEMICOLON SEMICOLON RP statement:st { return new ForStatementNode(ft.location, null, null, null, st); };
+		return_stmt =
+			  RETURN:ft expression:e SEMICOLON { return new ReturnNode(ft.location, e); }
+			/ RETURN:ft SEMICOLON { return new ReturnNode(ft.location, null); };
+		break_stmt =
+			  BREAK:ft IDENTIFIER:id SEMICOLON { return new BreakLoopNode(ft.location, id.text); }
+			/ BREAK:ft SEMICOLON { return new BreakLoopNode(ft.location, null); };
+		continue_stmt =
+			  CONTINUE:ft IDENTIFIER:id SEMICOLON { return new ContinueLoopNode(ft.location, id.text); }
+			/ CONTINUE:ft SEMICOLON { return new ContinueLoopNode(ft.location, null); };
+		switch_stmt =
+			SWITCH:ft LP expression:te RP LB { SwitchSectionNode[] sects; } (case_stmt:cs { sects ~= cs; } / default_stmt:ds { sects ~= ds; })* RB
+			{ return new SwitchStatementNode(ft.location, te, sects); };
+		case_stmt<SwitchSectionNode> = value_case_sect:vcs { return vcs; } / type_case_sect:tcs { return tcs; };
+		value_case_sect = CASE:ft expression_list:el RARROW2 statement:st { return new ValueCaseSectionNode(ft.location, el, st); };
+		type_case_sect =
+			  CASE:ft CONST def_id:id COLON type:t IF expression:e RARROW2 statement:st	{ return new TypeCaseSectionNode(ft.location, true, id, t, e, st); }
+			/ CASE:ft CONST def_id:id COLON type:t RARROW2 statement:st					{ return new TypeCaseSectionNode(ft.location, true, id, t, null, st); }
+			/ CASE:ft def_id:id COLON type:t IF expression:e RARROW2 statement:st		{ return new TypeCaseSectionNode(ft.location, false, id, t, e, st); }
+			/ CASE:ft def_id:id COLON type:t RARROW2 statement:st						{ return new TypeCaseSectionNode(ft.location, false, id, t, null, st); };
+		default_stmt = DEFAULT:ft RARROW2 statement:s { return new DefaultSectionNode(ft.location, s); };
+		block_stmt = LBR:t { StatementNode[] stmts; } (localvar_def:lvd { stmts ~= lvd; } / statement:st { stmts ~= st; })* RBR
+			{ return new BlockStatementNode(t.location, stmts); };
+		localvar_def = full_lvd:flvd { return flvd; } / inferenced_lvd:ilvd { return ilvd; };
+		nvp_list = { NameValuePair[] nvps; } nvpair:nvp { nvps ~= nvp; } (COMMA nvpair:nvp2 { nvps ~= nvp2; })* { return nvps; };
+		full_lvd = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Public); }
+			(lvar_qualifier:lq { q = q.combine(lq); })* type:tp nvp_list:nvps SEMICOLON
+			{ return new LocalVariableDeclarationNode(q.location.line == int.max ? tp.location : q.location, q, tp, nvps); };
+		inferenced_lvd =
+			lvar_qualifier:q (lvar_qualifier:q2 { q = q.combine(q2); })* nvp_list:nvps SEMICOLON
+			{ return new LocalVariableDeclarationNode(q.location, q, new InferenceTypeNode(q.location), nvps); };
 
 		# expressions #
-		expression_list = expression (COMMA expression)*;
-		expression = postfix_expr (EQUAL / assign_ops) expression / alternate_expr;
-		assign_ops = PLUS_EQ / MINUS_EQ / ASTERISK_EQ / SLASH_EQ / PERCENT_EQ / AMPASAND_EQ / VL_EQ / CA_EQ
-			/ LAB2_EQ / RAB2_EQ;
-		alternate_expr = short_expr [QUESTION short_expr COLON short_expr];
-		short_expr = comp_expr (AMPASAND2 comp_expr / VL2 comp_expr / CA2 comp_expr)*;
-		comp_expr = shift_expr (LAB shift_expr / RAB shift_expr / EQ2 shift_expr
-			/ EX_EQ shift_expr / LAB_EQ shift_expr / RAB_EQ shift_expr)*;
-		shift_expr = bit_expr (LAB2 bit_expr / RAB2 bit_expr)*;
-		bit_expr = a1_expr (AMPASAND a1_expr / VL a1_expr / CA a1_expr)*;
-		a1_expr = a2_expr (PLUS a2_expr / MINUS a2_expr)*;
-		a2_expr = range_expr (ASTERISK range_expr / SLASH range_expr / PERCENT range_expr)*;
-		range_expr = prefix_expr (PERIOD2 prefix_expr)*;
-		prefix_expr = PLUS prefix_expr / MINUS prefix_expr
-			/ PLUS2 prefix_expr / MINUS2 prefix_expr / ASTERISK2 / prefix_expr / postfix_expr;
-		postfix_expr = primary_expr (PLUS2 / MINUS2 / ASTERISK2
-			/ LBR [expression] RBR / LP [expression_list] RP
-			/ PERIOD IDENTIFIER [template_tail] / RARROW (single_types / LP restricted_type RP))*;
+		expression_list = { ExpressionNode[] elist; }
+			expression:e { elist ~= e; } (COMMA expression:e2 { elist ~= e2; })* { return elist; };
+		expression<ExpressionNode> =
+			  postfix_expr:l EQUAL expression:r			{ return new AssignOperatorNode(l, r); }
+			/ postfix_expr:l assign_ops:o expression:r	{ return new OperatedAssignNode(l, o, r); }
+			/ alternate_expr:e							{ return e; };
+		assign_ops =
+			  PLUS_EQ		{ return BinaryOperatorType.Add; }
+			/ MINUS_EQ		{ return BinaryOperatorType.Sub; }
+			/ ASTERISK_EQ	{ return BinaryOperatorType.Mul; }
+			/ SLASH_EQ		{ return BinaryOperatorType.Div; }
+			/ PERCENT_EQ	{ return BinaryOperatorType.Mod; }
+			/ AMPASAND_EQ	{ return BinaryOperatorType.And; }
+			/ VL_EQ			{ return BinaryOperatorType.Or; }
+			/ CA_EQ			{ return BinaryOperatorType.Xor; }
+			/ LAB2_EQ		{ return BinaryOperatorType.LeftShift; }
+			/ RAB2_EQ		{ return BinaryOperatorType.RightShift; };
+		alternate_expr<ExpressionNode> = short_expr:e
+			[QUESTION short_expr:t COLON short_expr:n { e = new AlternateValueNode(e, t, n); }] { return e; };
+		short_expr<ExpressionNode> = comp_expr:e
+			( AMPASAND2 comp_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.LogAnd, e2); }
+			/ VL2 comp_expr:e2			{ e = new BinaryOperatorNode(e, BinaryOperatorType.LogOr, e2); }
+			/ CA2 comp_expr:e2			{ e = new BinaryOperatorNode(e, BinaryOperatorType.LogXor, e2); })* { return e; };
+		comp_expr<ExpressionNode> = shift_expr:e
+			( LAB shift_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.Less, e2); }
+			/ RAB shift_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.Greater, e2); }
+			/ EQ2 shift_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.Equiv, e2); }
+			/ EX_EQ shift_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.Inequiv, e2); }
+			/ LAB_EQ shift_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.LessEq, e2); }
+			/ RAB_EQ shift_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.GreaterEq, e2); })* { return e; };
+		shift_expr<ExpressionNode> = bit_expr:e
+			( LAB2 bit_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.LeftShift, e2); }
+			/ RAB2 bit_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.RightShift, e2); })* { return e; };
+		bit_expr<ExpressionNode> = a1_expr:e
+			( AMPASAND a1_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.And, e2); }
+			/ VL a1_expr:e2			{ e = new BinaryOperatorNode(e, BinaryOperatorType.Or, e2); }
+			/ CA a1_expr:e2			{ e = new BinaryOperatorNode(e, BinaryOperatorType.Xor, e2); })* { return e; };
+		a1_expr<ExpressionNode> = a2_expr:e
+			( PLUS a2_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.Add, e2); }
+			/ MINUS a2_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.Sub, e2); })* { return e; };
+		a2_expr<ExpressionNode> = range_expr:e
+			( ASTERISK range_expr:e2	{ e = new BinaryOperatorNode(e, BinaryOperatorType.Mul, e2); }
+			/ SLASH range_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.Div, e2); }
+			/ PERCENT range_expr:e2		{ e = new BinaryOperatorNode(e, BinaryOperatorType.Mod, e2); })* { return e; };
+		range_expr<ExpressionNode> =
+			prefix_expr:e (PERIOD2 prefix_expr:e2 { e = new BinaryOperatorNode(e, BinaryOperatorType.Ranged, e2); })* { return e; };
+		prefix_expr<ExpressionNode> =
+			  PLUS prefix_expr:e		{ return e; }
+			/ MINUS:t prefix_expr:e		{ return new PreOperatorNode(t.location, e, UnaryOperatorType.Negate); }
+			/ PLUS2:t prefix_expr:e		{ return new PreOperatorNode(t.location, e, UnaryOperatorType.Increase); }
+			/ MINUS2:t prefix_expr:e	{ return new PreOperatorNode(t.location, e, UnaryOperatorType.Decrease); }
+			/ ASTERISK2:t prefix_expr:e	{ return new PreOperatorNode(t.location, e, UnaryOperatorType.Square); }
+			/ postfix_expr:e			{ return e; };
+		postfix_expr<ExpressionNode> = primary_expr:e
+			( PLUS2									{ e = new PostOperatorNode(e, UnaryOperatorType.Increase); }
+			/ MINUS2								{ e = new PostOperatorNode(e, UnaryOperatorType.Decrease); }
+			/ ASTERISK2								{ e = new PostOperatorNode(e, UnaryOperatorType.Square); }
+			/ LBR expression:d RBR					{ e = new ArrayRefNode(e, [d]); }
+			/ LBR RBR								{ e = new ArrayRefNode(e, null); }
+			/ LP expression_list:ps RP				{ e = new FuncallNode(e, ps); }
+			/ LP RP									{ e = new FuncallNode(e, null); }
+			/ PERIOD IDENTIFIER:id template_tail:tt	{ e = new ObjectRefNode(e, new TemplateInstantiateNode(id.location, id.text, tt)); }
+			/ PERIOD IDENTIFIER:id					{ e = new ObjectRefNode(e, new IdentifierReferenceNode(id.location, id.text)); }
+			/ RARROW single_types:st				{ e = new CastingNode(e, st); }
+			/ RARROW LP restricted_type:rt RP		{ e = new CastingNode(e, rt); })* { return e; };
 		primary_expr<ExpressionNode> =
 			  literals:l						{ return l; }
 			/ special_literals:sl				{ return sl; }
@@ -238,7 +345,7 @@ import std.typecons, std.conv;
 		function_literal =
 			  FUNCTION:f LP literal_varg_list:vl RP block_stmt:bs	{ return new FunctionLiteralNode(f.location, vl, bs); }
 			/ FUNCTION:f LP RP block_stmt:bs						{ return new FunctionLiteralNode(f.location, null, bs); };
-		array_literal =
+		array_literal<ExpressionNode> =
 			  LBR:ft expression_list:el RBR { return new ArrayLiteralNode(ft.location, el); }
 			/ LBR:ft assoc_array_element_list:el RBR { return new AssocArrayLiteralNode(ft.location, el); }
 			/ LBR:ft RBR { return new ArrayLiteralNode(ft.location, null); };
@@ -256,14 +363,14 @@ import std.typecons, std.conv;
 		# arglists #
 		template_arg_list = { TemplateVirtualParamNode[] params; }
 			template_arg:p { params ~= p; } (COMMA template_arg:p2 { params ~= p2; })* { return params; };
-		template_arg = template_arg_head:head (EQUAL type:t { head = new TemplataeVirtualParamNode(head, t); })* { return head; };
+		template_arg = template_arg_head:head (EQUAL type:t { head = new TemplateVirtualParamNode(head, t); })* { return head; };
 		template_arg_type = { alias ReturnType = Tuple!(TemplateVirtualParamNode.ParamType, "type", TypeNode, "stype", Location, "location"); }
 			( type:t { return ReturnType(TemplateVirtualParamNode.ParamType.Type, t, t.location); }
 			/ CLASS:tk { return ReturnType(TemplateVirtualParamNode.ParamType.Class, null, tk.location); }
-			/ ALIAS:tk { return ReturnType(TemplateVirutalParamNode.ParamType.SymbolAlias, null, tk.location); });
+			/ ALIAS:tk { return ReturnType(TemplateVirtualParamNode.ParamType.SymbolAlias, null, tk.location); });
 		template_arg_head =
 			  template_arg_type:type IDENTIFIER:id	{ return new TemplateVirtualParamNode(type.location, type.type, type.stype, id.text); }
-			/ IDENTIFIER:id							{ return new TemplateVirutalParamNode(id.location, TemplateVirtualParamNode.ParamType.Any, null, id.text); };
+			/ IDENTIFIER:id							{ return new TemplateVirtualParamNode(id.location, TemplateVirtualParamNode.ParamType.Any, null, id.text); };
 		varg_list = { VirtualParamNode params[]; }
 			varg:t { params ~= t; } (COMMA varg:v { params ~= v; })* { return params; };
 		varg = type:t IDENTIFIER:n EQUAL expression:dv PERIOD3 { return new VirtualParamNode(t, n.text, dv, true); }
@@ -382,7 +489,7 @@ import std.typecons, std.conv;
 			/ ULONG:t { return new RegisterTypeNode(t.location, RegisterTypeNode.Type.Ulong); };
 		template_instance<TemplateInstanceTypeNode> =
 			IDENTIFIER:t [template_tail:v { return new TemplateInstanceTypeNode(t.location, t.text, v); }]
-			{ return new TemplateInstanceNode(t.location, t.text, null); };
+			{ return new TemplateInstanceTypeNode(t.location, t.text, null); };
 		template_tail<TemplateParamNode[]> =
 			  SHARP single_types:st { return [new TemplateParamNode(st.location, st)]; }
 			/ SHARP primary_expr:pe { return [new TemplateParamNode(pe.location, pe)]; }
@@ -397,7 +504,7 @@ import std.typecons, std.conv;
 			/ single_restricted_type:srt { return srt; };
 		single_restricted_type<TypeNode> =
 			  register_types:rt { return rt; }
-			/ IDENTIFIER:t { return new TemplateinstanceNode(t.location, t.text, null); };
+			/ IDENTIFIER:t { return new TemplateInstanceTypeNode(t.location, t.text, null); };
 
 		# package paths #
 		import_list = import_item (COMMA import_item)*;
