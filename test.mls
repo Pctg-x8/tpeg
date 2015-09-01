@@ -1,0 +1,56 @@
+package com.cterm2.ml.test;
+
+// Maple Latte(tpeg) Grammar Testing Script
+
+import maple.sys.file;
+
+public trait IWriter
+{
+	public void write(String str...);
+}
+public class ConsoleWriter with IWriter
+{
+	public override void write(String str...)
+		maple.sys.io.write(str);
+}
+public class FileWriter with IWriter
+{
+	file.FileWriter writer;
+
+	public this(String filePath)
+	{
+		this.writer = new file.FileWriter(filePath);
+	}
+	public override void write(String str...)
+	{
+		this.writer.write(str);
+	}
+}
+extension for IWriter
+{
+	public void writeln(String st...)
+	{
+		this.write(st, "\n");
+	}
+}
+
+void main()
+{
+	auto cw = new ConsoleWriter();
+	auto fw = new FileWriter();
+	IWriter wrs = [cw, fw];
+
+	auto fnWriter = function(IWriter wr, String msg)
+	{
+		wr.write(msg);
+	}
+
+	cw.writeln("123");
+	fw.write("123", "456");
+	fnWriter(cw, "testFnWriter");
+	foreach(writer <- wrs)
+	{
+		writer.writeln("aaa");
+		writer.write("bb");
+	}
+}

@@ -27,13 +27,13 @@ void main()
             {
                 writeln("- process time: ", sw.peek.usecs, " us.");
             }
-            auto toks = Lexer.tokenizeStr(expr);
+            auto toks = Lexer.tokenize(expr[0 .. $ - 1]);
             // writeln("result: ", toks);
             auto parseRes = Parser.parse(toks);
             if(parseRes.failed)
             {
-                writeln("Failed to parsing(input \"quit\" or \"q\" to exit) at token no.",
-                    parseRes.iterError.pos, ": type=", parseRes.iterError.current.type);
+                writeln("Failed to parsing(input \"quit\" or \"q\" to exit) at ",
+                    parseRes.iterError.current.location, ": type=", parseRes.iterError.current.type);
             }
             // writeln("result: ", parseRes);
         }
