@@ -4,12 +4,18 @@ import std.stdio, std.datetime, std.algorithm, std.array;
 import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.treeDump;
 import com.cterm2.tpeg.symbolFinder;
+import com.cterm2.tpeg.patternParser;
 import com.cterm2.tpeg.processTree;
 import com.cterm2.tpeg.codegen;
 import com.cterm2.tpeg.parserGenerator;
 import Settings = com.cterm2.tpeg.settings;
 
-void main(string[] args)
+enum ErrorState : int
+{
+	Success, Failure, NoArg = -1
+}
+
+int main(string[] args)
 {
 	if(args.length <= 1)
 	{
@@ -17,7 +23,7 @@ void main(string[] args)
 		writeln("Usage: tpeg [-v] [-o(OutputDir)] [InputFile]");
 		writeln("  (-v for verbose process)");
 		writeln("  (-o for specify output directory(default is \"tpeg_output\"))");
-		return;
+		return ErrorState.NoArg;
 	}
 
 	bool isVerbose = args.any!(a => a == "-v");
@@ -44,10 +50,19 @@ void main(string[] args)
 	if(er)
 	{
 		writeln("one or more errors detected. generator stopped.");
-		return;
+		return ErrorState.Failure;
 	}
-	/*scope auto dumper = new TreeDump();
-	dumper.dump(sourceTree);*/
+	scope auto dumper = new TreeDump();
+	dumper.dump(sourceTree);
+	if(isVerbose) writeln("Tokenizer Pattern parsing...");
+	scope auto patternParser = new PatternParser();
+	patternParser.entry(sourceTree);
+	if(patternParser.hasError)
+	{
+		writeln("one or more errors detected. generator stopped.");
+		return ErrorState.Failure;
+	}
+
 	if(isVerbose) writeln("1st generating code...");
 	scope auto codeGenerator = new CodeGenerator();
 	codeGenerator.entry(sourceTree);
@@ -57,7 +72,7 @@ void main(string[] args)
 	if(processTreeGen.hasError)
 	{
 		writeln("one or more errors detected. generator stopped.");
-		return;
+		return ErrorState.Failure;
 	}
 	if(isVerbose) writeln("2nd generating code...");
 	scope auto parserGenerator = new ParserGenerator();
@@ -65,4 +80,5 @@ void main(string[] args)
 	sw.stop();
 
 	if(isVerbose) writeln("done. (", sw.peek.usecs, " us)");
+	return ErrorState.Success;
 }

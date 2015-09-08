@@ -6,19 +6,32 @@ tokenizer
 {
 	module lexer
 
-	skip_pattern	[ \t\r\n]
-	skip_pattern	//[^\n]*\n
-	skip_pattern	/*[^\*]*\*/
+	# tokenizer grammar
+	# "X": parse X(string)
+	# *: match any times
+	# +: match one more times
+	#   same: (A B)+ and (A B) (A B)*
+	# (~): grouping
+	# X-Y: range from X to Y(must be single char for X and Y)
+	# /: select(less prior than sequences(space delimitered))
+	# e.g.: "A B / C D" and "A (B / C) D" are difference
+	# !: not
+
+	# means: skip chars if is parsable space or tab or returns
+	skip_pattern	" " / "\t" / "\r" / "\n"
+	# means: skip chars if starts "//" and connect any chars(not "\n") and find "\n"
+	skip_pattern	"//" (!"\n")* "\n"
+	skip_pattern	"/*" (!"*/")* "*/"
 	patterns
 	{
-		INUMBER		[0-9]+
-		HNUMBER		0x[0-9A-Fa-f]+
-		FNUMBER		[0-9]*\.[0-9]+(f|F)
-		DNUMBER		[0-9]*\.[0-9]+(d|D)
-		NUMBER		[0-9]*\.[0-9]+
-		STRING		@"[^"]*"
-		CHARACTER	'[^']*'
-		IDENTIFIER	[A-Za-z_][A-Za-z0-9_]*
+		INUMBER		("0"-"9")+
+		HNUMBER		"0x" ("0"-"9" / "A"-"F" / "a"-"f")+
+		FNUMBER		("0"-"9")* "." ("0"-"9")+ ("F" / "f")
+		DNUMBER		("0"-"9")* "." ("0"-"9")+ ("D" / "d")
+		NUMBER		("0"-"9")* "." ("0"-"9")+
+		STRING		"\"" (!"\"")* "\""
+		CHARACTER	"'" (!"'")* "'"
+		IDENTIFIER	("A"-"Z" / "a"-"z" / "_") ("A"-"Z" / "a"-"z" / "0"-"9" / "_")*
 
 		SEMICOLON	";"
 		PERIOD		"."
@@ -73,7 +86,9 @@ tokenizer
 		RB			"}"
 		LBR			"["
 		RBR			"]"
-
+	}
+	specialize IDENTIFIER
+	{
 		# keywords
 		PACKAGE		"package"
 		IMPORT		"import"

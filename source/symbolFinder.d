@@ -55,6 +55,21 @@ class SymbolFinder : IVisitor
 	{
 		foreach(n; node.skipPatterns) n.accept(this);
 		foreach(n; node.patterns) n.accept(this);
+		foreach(s, n; node.specializes)
+		{
+			if(this.phase == EnumFinderPhase.Resolve)
+			{
+				if(!this.patternNames.any!(a => a.str == s))
+				{
+					writeln("Error: Token " ~ s ~ " is not found. at line ", node.location);
+					this.hasError = true;
+				}
+			}
+			else
+			{
+				foreach(nds; n) nds.accept(this);
+			}
+		}
 		if(this.phase == EnumFinderPhase.Prepare) node.patternSymbols = this.patternNames.map!(a => a.str).array;
 	}
 	public override void visit(ParserNode node)

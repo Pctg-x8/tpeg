@@ -91,6 +91,10 @@ class TreeDump : IVisitor
 			this.printAttribute("moduleName", moduleName);
 			this.printAttribute("skipPatterns", skipPatterns);
 			this.printAttribute("patterns", patterns);
+			foreach(s, p; specializes)
+			{
+				this.printAttribute("Specialize Pattern for " ~ s, p);
+			}
 		}
 	}
 	public override void visit(ParserNode node)
@@ -119,7 +123,6 @@ class TreeDump : IVisitor
 
 			this.printAttribute("tokenName", tokenName);
 			this.printAttribute("patternString", patternString);
-			this.printAttribute("isRegex", isRegex);
 		}
 	}
 	public override void visit(RuleNode node)

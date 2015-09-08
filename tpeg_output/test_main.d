@@ -28,6 +28,7 @@ void main()
                 writeln("- process time: ", sw.peek.usecs, " us.");
             }
             auto toks = Lexer.tokenize(expr[0 .. $ - 1]);
+            writeln("- tokenizer process time: ", sw.peek.usecs, " us.");
             // writeln("result: ", toks);
             auto parseRes = Parser.parse(toks);
             if(parseRes.failed)

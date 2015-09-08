@@ -5,6 +5,7 @@ import com.cterm2.tpeg.scriptParser;
 import com.cterm2.tpeg.visitor;
 
 import com.cterm2.tpeg.processTree;
+import com.cterm2.tpeg.patternTree;
 
 public abstract class NodeBase : IAcceptor
 {
@@ -41,19 +42,22 @@ public class TokenizerNode : NodeBase
 	PatternNode[] skip_patterns;
 	PatternNode[] _patterns;
 	string[] pattern_symbols;
+	PatternNode[][string] _specializes;
 
 	public @property moduleName(){ return this.module_name; }
 	public @property skipPatterns(){ return this.skip_patterns; }
 	public @property patterns(){ return this._patterns; }
 	public @property patternSymbols(){ return this.pattern_symbols; }
 	public @property patternSymbols(string[] ps){ this.pattern_symbols = ps.dup; }
+	public @property specializes(){ return this._specializes; }
 
-	public this(Location l, string mn, PatternNode[] sp, PatternNode[] pts)
+	public this(Location l, string mn, PatternNode[] sp, PatternNode[] pts, PatternNode[][string] spc)
 	{
 		super(l);
 		this.module_name = mn;
 		this.skip_patterns = sp;
 		this._patterns = pts;
+		this._specializes = spc;
 	}
 
 	mixin DefaultAcceptorImpl;
@@ -62,25 +66,24 @@ public class PatternNode : NodeBase
 {
 	string token_name;
 	string pattern_string;
-	bool is_regex;
+	PatternTreeBase pattern_tree;
 
 	public @property tokenName(){ return this.token_name; }
 	public @property patternString(){ return this.pattern_string; }
-	public @property isRegex(){ return this.is_regex; }
+	public @property patternTree(){ return this.pattern_tree; }
+	public @property patternTree(PatternTreeBase pt) { this.pattern_tree = pt; }
 
-	public this(Location l, string tn, string ps, bool rx)
+	public this(Location l, string tn, string ps)
 	{
 		super(l);
 		this.token_name = tn;
 		this.pattern_string = ps;
-		this.is_regex = rx;
 	}
-	public this(Location l, string ps, bool rx)
+	public this(Location l, string ps)
 	{
 		super(l);
 		this.token_name = null;
 		this.pattern_string = ps;
-		this.is_regex = rx;
 	}
 
 	mixin DefaultAcceptorImpl;

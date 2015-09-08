@@ -231,7 +231,7 @@ class CodeGenerator : IVisitor
 	}
 	public void visit(PatternNode node)
 	{
-		switch(this.currentState)
+		/*switch(this.currentState)
 		{
 		case EnumCurrentState.GeneratePatternCtRegex:
 			if(node.isRegex)
@@ -287,7 +287,7 @@ class CodeGenerator : IVisitor
 			}
 			break;
 		default: break;
-		}
+		}*/
 	}
 	public void visit(RuleNode node)
 	{

@@ -1,7 +1,7 @@
 module com.cterm2.tpeg.scriptParser;
 
 import std.string, std.file, std.stdio, std.array, std.range, std.algorithm, std.conv;
-import std.regex;
+import std.regex, std.typecons;
 
 import com.cterm2.tpeg.tree;
 
@@ -107,6 +107,7 @@ public class ScriptParser
 		string module_name = "tokenizer";
 		PatternNode[] skip_patterns;
 		PatternNode[] patterns;
+		PatternNode[][string] specials;
 
 		// body
 		while(true)
@@ -120,14 +121,7 @@ public class ScriptParser
 			{
 				auto patLocation = this.loc;
 				auto skip_pattern = this.parseSkipPattern;
-				if(skip_pattern.front == '"' && skip_pattern.back == '"')
-				{
-					skip_patterns ~= new PatternNode(patLocation, skip_pattern[1 .. $ - 1], false);
-				}
-				else
-				{
-					skip_patterns ~= new PatternNode(patLocation, skip_pattern, true);
-				}
+				skip_patterns ~= new PatternNode(patLocation, skip_pattern);
 				this.skipIgnores;
 			}
 			else if(this.getIdentifier == "patterns")
@@ -135,11 +129,17 @@ public class ScriptParser
 				patterns = this.enterPatternsBlock();
 				this.skipIgnores;
 			}
+			else if(this.getIdentifier == "specialize")
+			{
+				auto spec_res = this.enterSpecializeBlock();
+				specials[spec_res.baseName] = spec_res.content;
+				this.skipIgnores;
+			}
 			else break;
 		}
 
 		this.checkCharacter!'}';
-		return new TokenizerNode(enterLocation, module_name, skip_patterns, patterns);
+		return new TokenizerNode(enterLocation, module_name, skip_patterns, patterns, specials);
 	}
 	private ParserNode enterParserBlock()
 	{
@@ -222,24 +222,42 @@ public class ScriptParser
 			this.dropIdentifier(token_name);
 			this.skipSpaces;
 			auto pattern = this.getStringToLF;
-			if(pattern.front == '@')
-			{
-				// @... (forcing regex)
-				nodes ~= new PatternNode(enterLocation, token_name, pattern[1 .. $], true);
-			}
-			else if(pattern.front == '"' && pattern.back == '"')
-			{
-				nodes ~= new PatternNode(enterLocation, token_name, pattern[1 .. $ - 1], false);
-			}
-			else
-			{
-				nodes ~= new PatternNode(enterLocation, token_name, pattern, true);
-			}
+			nodes ~= new PatternNode(enterLocation, token_name, pattern);
 			this.skipIgnores;
 		}
 
 		this.checkCharacter!'}';
 		return nodes;
+	}
+	private auto enterSpecializeBlock()
+	{
+		alias ReturnType = Tuple!(string, "baseName", PatternNode[], "content");
+		this.correctIdentifier!"specialize";
+		this.skipIgnores;
+		auto base_name = this.getIdentifier;
+		if(base_name.empty) throw new ParseError("Required base token name", this.loc);
+		this.dropIdentifier(base_name);
+		this.skipIgnores;
+		this.checkCharacter!'{';
+		this.skipIgnores;
+
+		// body
+		PatternNode[] nodes;
+		while(!this.parsingRange.empty && this.parsingRange.front != '}')
+		{
+			auto enterLocation = this.loc;
+
+			auto token_name = this.getIdentifier;
+			if(token_name.empty) throw new ParseError("Required token name", this.loc);
+			this.dropIdentifier(token_name);
+			this.skipSpaces;
+			auto pattern = this.getStringToLF;
+			nodes ~= new PatternNode(enterLocation, token_name, pattern);
+			this.skipIgnores;
+		}
+
+		this.checkCharacter!'}';
+		return ReturnType(base_name, nodes);
 	}
 	private string parseHeader()
 	{
