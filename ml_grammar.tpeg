@@ -20,8 +20,8 @@ tokenizer
 	# means: skip chars if is parsable space or tab or returns
 	skip_pattern	" " / "\t" / "\r" / "\n"
 	# means: skip chars if starts "//" and connect any chars(not "\n") and find "\n"
-	skip_pattern	"//" (!"\n")* "\n"
-	skip_pattern	"/*" (!"*/")* "*/"
+	skip_pattern	"//" ?* "\n"
+	skip_pattern	"/*" ?* "*/"
 	patterns
 	{
 		INUMBER		("0"-"9")+
@@ -29,7 +29,7 @@ tokenizer
 		FNUMBER		("0"-"9")* "." ("0"-"9")+ ("F" / "f")
 		DNUMBER		("0"-"9")* "." ("0"-"9")+ ("D" / "d")
 		NUMBER		("0"-"9")* "." ("0"-"9")+
-		STRING		"\"" (!"\"")* "\""
+		STRING		"\"" ("\\" ? / !"\"")* "\""
 		CHARACTER	"'" (!"'")* "'"
 		IDENTIFIER	("A"-"Z" / "a"-"z" / "_") ("A"-"Z" / "a"-"z" / "0"-"9" / "_")*
 

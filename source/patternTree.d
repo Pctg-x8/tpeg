@@ -39,12 +39,6 @@ class SoloContentNode(ContentT) : PatternTreeBase
 }
 class PatternStringOperatorNode : PatternTreeBase
 {
-	public alias opEquals = Object.opEquals;
-	public abstract bool opEquals(LiteralStringNode p);
-	public abstract bool opEquals(RangedLiteralNode p);
-	public abstract bool opEquals(PatternStringOperatorNode p);
-	public abstract bool canMatch(LiteralStringNode p);
-	public abstract bool canMatch(RangedLiteralNode p);
 	public final bool canMatch(PatternStringOperatorNode p)
 	{
 		if(typeid(p) == typeid(LiteralStringNode)) return this.canMatch(cast(LiteralStringNode)p);
@@ -60,22 +54,46 @@ class LiteralStringNode : PatternStringOperatorNode
 
 	public override @property PatternTreeLocation location() pure { return this.loc; }
 	public @property content() pure { return this.cont; }
+	public @property escapedContent() pure
+	{
+		if(this.content.front != '\\') return this.content;
+		else
+		{
+			switch(this.content[1])
+			{
+			case 'n': return "\n";
+			case 't': return "\t";
+			case 'r': return "\r";
+			default: return this.content[1].to!string;
+			}
+		}
+	}
 
-	public alias opEquals = Object.opEquals;
-	public override bool opEquals(LiteralStringNode p)
-	{
-		return this.cont == p.cont;
-	}
-	public override bool opEquals(RangedLiteralNode p)
-	{
-		return p.left.opEquals(p.right) && this.opEquals(p.left);
-	}
-	public override bool opEquals(PatternStringOperatorNode p) { return p.opEquals(this); }
-	public override bool canMatch(LiteralStringNode p) { return this.cont == p.cont; }		// matches "a".canMatch("a")
-	public override bool canMatch(RangedLiteralNode p) { return false; }					// doesn't match "a".canMatch("0"~"9")
 	public override PatternStringOperatorNode[] purge()
 	{
-		return this.cont.map!(a => cast(PatternStringOperatorNode)new LiteralStringNode(this.loc, (cast(dchar)a).to!string)).array;
+		PatternTreeLocation loc = this.loc;
+		PatternStringOperatorNode[] nodes;
+		bool inEscape = false;
+		foreach(a; this.cont)
+		{
+			if(inEscape)
+			{
+				nodes ~= new LiteralStringNode(loc, "\\" ~ a);
+				loc.col += 2;
+				inEscape = false;
+			}
+			else
+			{
+				if(a == '\\') inEscape = true;
+				else
+				{
+					nodes ~= new LiteralStringNode(loc, a.to!string);
+					loc.col++;
+				}
+			}
+		}
+		assert(!inEscape);
+		return nodes;
 	}
 
 	public this(PatternTreeLocation l, string c)
@@ -96,26 +114,6 @@ class RangedLiteralNode : PatternStringOperatorNode
 	public @property left() pure { return this.nodes[0]; }
 	public @property right() pure { return this.nodes[1]; }
 
-	public alias opEquals = Object.opEquals;
-	public override bool opEquals(LiteralStringNode p)
-	{
-		return this.left.opEquals(this.right) && p.opEquals(this.left);
-	}
-	public override bool opEquals(RangedLiteralNode p)
-	{
-		return p.left.opEquals(this.left) && p.right.opEquals(this.right);
-	}
-	public override bool opEquals(PatternStringOperatorNode p) { return p.opEquals(this); }
-	public override bool canMatch(LiteralStringNode p)
-	{
-		// matches ("0"~"9").canMatch("0")
-		return p.cont.length == 1 && this.left.cont.front <= p.cont.front && p.cont.front <= this.right.cont.front;
-	}
-	public override bool canMatch(RangedLiteralNode p)
-	{
-		// matches ("0"~"9").canMatch("4"~"5")
-		return this.left.cont.front <= p.left.cont.front && p.right.cont.front <= this.right.cont.front;
-	}
 	public override PatternStringOperatorNode[] purge()
 	{
 		return [new RangedLiteralNode(this.left, this.right)];
@@ -131,18 +129,23 @@ class RangedLiteralNode : PatternStringOperatorNode
 
 	mixin PatternTreeAcceptorDefaultImpl;
 }
-class PatternGroupNode : SoloContentNode!PatternTreeBase
+class AnyCharacterNode : PatternStringOperatorNode
 {
-	public this(PatternTreeLocation l, PatternTreeBase c)
+	PatternTreeLocation loc;
+
+	public override @property PatternTreeLocation location() pure { return this.loc; }
+
+	public override PatternStringOperatorNode[] purge()
 	{
-		super(l, c);
+		return [new AnyCharacterNode(this.loc)];
 	}
 
-	public override string toString()
+	public this(PatternTreeLocation l)
 	{
-		return this.content.toString;
+		this.loc = l;
 	}
 
+	public override string toString() { return "AnyCharacter"; }
 	mixin PatternTreeAcceptorDefaultImpl;
 }
 class ExcludingPatternNode : SoloContentNode!PatternTreeBase
@@ -248,8 +251,8 @@ interface IPatternTreeVisitor
 	public void visit(LoopQualifiedPatternNode);
 	public void visit(ZeroLoopQualifiedPatternNode);
 	public void visit(ExcludingPatternNode);
-	public void visit(PatternGroupNode);
 	public void visit(LiteralStringNode);
+	public void visit(AnyCharacterNode);
 
 	public final void visit(PatternTreeBase n) { assert(false); }
 }
@@ -330,17 +333,15 @@ class PatternTreeDumper : IPatternTreeVisitor
 		node.content.accept(this);
 		this.leaveNodeBlock();
 	}
-	public override void visit(PatternGroupNode node)
-	{
-		this.enterNodeBlock("PatternGroupNode");
-		write(this.tabs, "content: "); this.requireIndent = false;
-		node.content.accept(this);
-		this.leaveNodeBlock();
-	}
 	public override void visit(LiteralStringNode node)
 	{
 		this.enterNodeBlock("LiteralStringNode");
 		writeln(this.tabs, "content: ", node.content);
+		this.leaveNodeBlock();
+	}
+	public override void visit(AnyCharacterNode node)
+	{
+		this.enterNodeBlock("AnyCharacterNode");
 		this.leaveNodeBlock();
 	}
 }
