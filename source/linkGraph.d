@@ -5,7 +5,7 @@ module com.cterm2.tpeg.linkGraph;
 import std.algorithm, std.array, std.range, std.conv, std.stdio;
 import com.cterm2.tpeg.patternParser : ReduceAction;
 
-abstract class LinkNodeBase
+abstract class LinkNodeBase : ILinkNodeAcceptor
 {
 	size_t _generation;
 	bool single_from_chain = false;
@@ -55,6 +55,8 @@ abstract class LinkNodeBase
 		if(auto t = cast(LinkNodeBase)o) return this.representation == t.representation;
 		return false;
 	}
+
+	mixin LinkNodeAcceptorImpl;
 }
 
 final class LinkCharacter : LinkNodeBase
@@ -70,6 +72,8 @@ final class LinkCharacter : LinkNodeBase
 	}
 
 	public override @property string representation() { return "\"" ~ (ch < ' ' ? "\\x" ~ to!string(cast(uint)ch, 16) : ch.to!string) ~ "\"(" ~ this.generation.to!string ~ ")"; }
+
+	mixin LinkNodeAcceptorImpl;
 }
 final class LinkWildcard : LinkNodeBase
 {
@@ -79,17 +83,23 @@ final class LinkWildcard : LinkNodeBase
 	{
 		super(g);
 	}
+
+	mixin LinkNodeAcceptorImpl;
 }
 final class LinkAcceptNode : LinkNodeBase
 {
 	ReduceAction reduce;
 
 	public override @property string representation() { return "[Accept to " ~ this.reduce.to!string ~ "(" ~ this.generation.to!string ~ ")]"; }
+	public @property reduceAction(){ return this.reduce; }
+	
 	public this(size_t g, ReduceAction r)
 	{
 		super(g);
 		this.reduce = r;
 	}
+
+	mixin LinkNodeAcceptorImpl;
 }
 final class LinkChaosNode : LinkNodeBase
 {
@@ -99,4 +109,25 @@ final class LinkChaosNode : LinkNodeBase
 	{
 		super(g);
 	}
+
+	mixin LinkNodeAcceptorImpl;
+}
+
+interface ILinkNodeVisitor
+{
+	public void visit(LinkCharacter);
+	public void visit(LinkWildcard);
+	public void visit(LinkAcceptNode);
+	public void visit(LinkChaosNode);
+
+	public final void visit(LinkNodBase) { assert(false); }
+}
+interface ILinkNodeAcceptor
+{
+	public void accept(ILinkNodeVisitor v);
+}
+
+mixin template LinkNodeAcceptorImpl()
+{
+	public override void accept(ILinkNodeVisitor v) { v.visit(this); }
 }

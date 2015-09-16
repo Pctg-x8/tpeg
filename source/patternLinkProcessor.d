@@ -4,6 +4,7 @@ import com.cterm2.tpeg.tree, com.cterm2.tpeg.visitor;
 import com.cterm2.tpeg.patternParser;
 import com.cterm2.tpeg.patternTree;
 import com.cterm2.tpeg.linkGraph;
+import com.cterm2.tpeg.tableStructure;
 import std.stdio, std.algorithm, std.array, std.range;
 
 class LinkGenerator : IPatternTreeVisitor
@@ -216,5 +217,48 @@ class LinkGenerator : IPatternTreeVisitor
 			this.lastObjects ~= obj;
 		}
 		this.currentGeneration++;
+	}
+}
+
+class ShiftTableGenerator : ILinkNodeVisitor
+{
+	ShiftTable table;
+	size_t newState;
+	dchar candidateChar;
+	bool isDefaultBehavior;
+
+	public void generate(LinkNodeBase base)
+	{
+		this.table = new ShiftTable();
+
+		base.accept(this);
+	}
+
+	// ILinkNodeVisitor //
+	public override void visit(LinkCharacter node)
+	{
+		this.newState = this.table.appendNewState();
+		this.table.registerAction(node.character, );
+		this.table.pushCurrentState();
+		this.candidateChar = node.character;
+		this.isDefaultBehavior = false;
+		foreach(n; node.connectionTo.filter!(a => a.generation > node.generation)) n.accept(this);
+		this.table.popCurrentState();
+	}
+	public override void visit(LinkWildcard node)
+	{
+		this.table.pushCurrentState();
+		this.newState = this.table.appendNewState();
+		this.isDefaultBehavior = true;
+		foreach(n; node.connectionTo.filter!(a => a.generation > node.generation)) n.accept(this);
+		this.table.popCurrentState();
+	}
+	public override void visit(LinkAcceptNode node)
+	{
+		this.table.registerAction(this.candidateChar, node.reduceAction);
+	}
+	public override void visit(LinkChaosNode node)
+	{
+		foreach(n; node.connectionTo) n.accept(this);
 	}
 }
