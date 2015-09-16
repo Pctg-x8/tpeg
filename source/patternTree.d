@@ -39,6 +39,8 @@ class SoloContentNode(ContentT) : PatternTreeBase
 }
 class PatternStringOperatorNode : PatternTreeBase
 {
+	public size_t generationNumber;
+
 	public final bool canMatch(PatternStringOperatorNode p)
 	{
 		if(typeid(p) == typeid(LiteralStringNode)) return this.canMatch(cast(LiteralStringNode)p);

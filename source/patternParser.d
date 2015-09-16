@@ -3,9 +3,11 @@ module com.cterm2.tpeg.patternParser;
 import com.cterm2.tpeg.tree;
 import com.cterm2.tpeg.visitor;
 import com.cterm2.tpeg.scriptParser;
+import com.cterm2.tpeg.linkGraph;
 import std.stdio, std.algorithm, std.range, std.array, std.conv;
 
 import com.cterm2.tpeg.patternTree;
+import com.cterm2.tpeg.patternLinkProcessor;
 
 class TableActionBase
 {
@@ -145,6 +147,7 @@ class PatternParser : IVisitor
 	bool has_error;
 	ShiftTable shiftTable;
 	ReduceTable reduceTable;
+	LinkGenerator linkGenerator;
 
 	public @property hasError() pure { return this.has_error; }
 	public void entry(ScriptNode node)
@@ -152,9 +155,13 @@ class PatternParser : IVisitor
 		this.has_error = false;
 		this.shiftTable = new ShiftTable();
 		this.reduceTable = new ReduceTable();
+		this.linkGenerator = new LinkGenerator;
 		node.accept(this);
 
-		writeln("--- Shift Table ---");
+		writeln("--- LinkGraph ---");
+		this.linkGenerator.rootNode.dump(0);
+
+		/*writeln("--- Shift Table ---");
 		{
 			size_t[] columnSpaces = [[shiftTable.maxIndex.to!string.length, "state".length].reduce!max + 2];
 			string[] separatorContents = ["-".repeat(columnSpaces[0]).join];
@@ -182,7 +189,7 @@ class PatternParser : IVisitor
 				writeln("|", rowContents.join("|"), "|");
 			}
 			writeln("+", separatorContents.join("+"), "+");
-		}
+		}*/
 
 		writeln("--- Reduce Table ---");
 		{
@@ -240,8 +247,12 @@ class PatternParser : IVisitor
 			reduceAct = new ReduceAction(reduceNumToThis);
 		}
 		else reduceAct = new ReduceAction();	// for skipping
+		node.reduceAction = reduceAct;
 
-		try
+		// Generate LinkGraph(Intermediate Representation)
+		this.linkGenerator.generate(node.patternTree, reduceAct);
+
+		/*try
 		{
 			scope auto generator = new ShiftTableGenerator();
 			generator.generate(this.shiftTable, reduceAct, node.patternTree);
@@ -250,7 +261,7 @@ class PatternParser : IVisitor
 		{
 			writeln("Exception in generating pattern table: ", e.msg);
 			this.has_error = true;
-		}
+		}*/
 	}
 	public override void visit(RuleNode){}
 	public override void visit(PEGSwitchingNode){}
@@ -476,86 +487,5 @@ class PatternParserImpl
 		auto t = this.current[amount .. $];
 		this.current = t;
 		this.cloc += amount;
-	}
-}
-
-class ShiftTableGenerator : IPatternTreeVisitor
-{
-	private ShiftTable shiftTable;
-	private size_t newState;
-	private TableActionBase currentAction;
-
-	public void generate(ShiftTable tableTo, ReduceAction raStruct, PatternTreeBase node)
-	{
-		this.shiftTable = tableTo;
-		this.newState = 1;
-		this.shiftTable.setCurrentState(0);
-		this.currentAction = raStruct;
-		node.accept(this);
-
-		// add all to reduces
-		/*this.shiftTable.setCurrentState(this.currentState);
-		foreach(c; this.shiftTable.candidates) this.shiftTable.registerAction(c, raStruct);
-		this.shiftTable.registerAnyAction(raStruct);*/
-		/*foreach(c; this.insertionReservedCandidates.uniq)
-		{
-			this.shiftTable.registerAction(c, raStruct);
-		}
-		if(this.insertionReservedToAnyChar)
-		{
-			this.shiftTable.registerAnyAction(raStruct);
-		}
-		this.insertionReservedCandidates = null;
-		this.insertionReservedToAnyChar = false;*/
-	}
-
-	public override void visit(PatternSwitchNode node)
-	{
-		auto finalAction = this.currentAction;	// save
-		foreach(n; node.trees)
-		{
-			this.currentAction = finalAction;
-			n.accept(this);
-		}
-	}
-	public override void visit(PatternSequenceNode node)
-	{
-		auto finalAction = this.currentAction;	// save
-		foreach(i, n; node.trees)
-		{
-			auto newState = this.shiftTable.appendNewState();
-			this.currentAction = new ShiftAction(newState);
-			n.accept(this);
-			this.shiftTable.setCurrentState(newState);
-		}
-	}
-	public override void visit(RangedLiteralNode node)
-	{
-		foreach(d; node.left.content.front .. node.right.content.front + 1)
-		{
-			this.shiftTable.registerAction(d, this.currentAction);
-		}
-	}
-	public override void visit(LoopQualifiedPatternNode node)
-	{
-		node.content.accept(this);
-	}
-	public override void visit(ZeroLoopQualifiedPatternNode node)
-	{
-		node.content.accept(this);
-	}
-	public override void visit(ExcludingPatternNode node)
-	{
-		node.content.accept(this);
-	}
-	public override void visit(LiteralStringNode node)
-	{
-		assert(node.escapedContent.length == 1);
-
-		this.shiftTable.registerAction(node.escapedContent.front, this.currentAction);
-	}
-	public override void visit(AnyCharacterNode node)
-	{
-		this.shiftTable.registerAnyAction(this.currentAction);
 	}
 }

@@ -6,6 +6,7 @@ import com.cterm2.tpeg.visitor;
 
 import com.cterm2.tpeg.processTree;
 import com.cterm2.tpeg.patternTree;
+import com.cterm2.tpeg.patternParser;
 
 public abstract class NodeBase : IAcceptor
 {
@@ -67,11 +68,14 @@ public class PatternNode : NodeBase
 	string token_name;
 	string pattern_string;
 	PatternTreeBase pattern_tree;
+	ReduceAction reduce_action;
 
 	public @property tokenName(){ return this.token_name; }
 	public @property patternString(){ return this.pattern_string; }
 	public @property patternTree(){ return this.pattern_tree; }
 	public @property patternTree(PatternTreeBase pt) { this.pattern_tree = pt; }
+	public @property reduceAction(){ return this.reduce_action; }
+	public @property reduceAction(ReduceAction ra) in { assert(ra !is null); } body { this.reduce_action = ra; }
 
 	public this(Location l, string tn, string ps)
 	{
