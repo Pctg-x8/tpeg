@@ -3,25 +3,38 @@ module com.cterm2.tpeg.linkGraph;
 // Link Graph Node Classes
 
 import std.algorithm, std.array, std.range, std.conv, std.stdio;
-import com.cterm2.tpeg.patternParser : ReduceAction;
+import com.cterm2.tpeg.tableStructure;
 
 abstract class LinkNodeBase : ILinkNodeAcceptor
 {
 	size_t _generation;
 	bool single_from_chain = false;
-	LinkNodeBase[] connection_to;
+	LinkNodeBase[] connection_to, connected_from;
+	size_t node_transit_state;
+	bool has_transit = false;
 
 	public final @property connectionTo(){ return this.connection_to; }
+	public final @property connectedFrom(){ return this.connected_from; }
 	public final @property generation(){ return this._generation; }
 	public final @property singleFromChain(){ return this.single_from_chain; }
 	public final void setRejectMultichained(){ this.single_from_chain = true; }
+	public final @property nodeTransitState(){ return this.node_transit_state; }
+	public final void updateTransitState(size_t nts)
+	in { assert(!this.has_transit); }
+	body { this.node_transit_state = nts; this.has_transit = true; }
+	public final @property hasTransitState(){ return this.has_transit; }
 
 	public final void connectNode(LinkNodeBase p)
 	{
 		if(this.connection_to.find(p).empty)
 		{
-			writeln("[Debug]Link ", this.representation, " -> ", p.representation, "(ID=", cast(ptrdiff_t)cast(void*)p, ")");
+			// writeln("[Debug]Link ", this.representation, "(ID=", cast(void*)this, ") -> ", p.representation, "(ID=", cast(void*)p, ")");
 			this.connection_to ~= p;
+			p.connected_from ~= this;
+		}
+		else
+		{
+			// writeln("[Debug]Linked ", this.representation, "(ID=", cast(void*)this, ") -> ", p.representation, "(ID=", cast(void*)p, ")");
 		}
 	}
 	public final void connectNodes(LinkNodeBase[] p)
@@ -49,10 +62,11 @@ abstract class LinkNodeBase : ILinkNodeAcceptor
 		// this.connectionTo.filter!(c => c.generation > this.generation).each!(c => c.dump(indent + 1, dumpedObjects ~ this));
 	}
 	public abstract @property string representation();
+	public abstract @property string rawRepresentation();
 
 	public final override bool opEquals(Object o)
 	{
-		if(auto t = cast(LinkNodeBase)o) return this.representation == t.representation;
+		if(auto t = cast(LinkNodeBase)o) return this.rawRepresentation == t.rawRepresentation;
 		return false;
 	}
 
@@ -71,13 +85,15 @@ final class LinkCharacter : LinkNodeBase
 		this.ch = c;
 	}
 
-	public override @property string representation() { return "\"" ~ (ch < ' ' ? "\\x" ~ to!string(cast(uint)ch, 16) : ch.to!string) ~ "\"(" ~ this.generation.to!string ~ ")"; }
+	public override @property string representation() { return this.rawRepresentation ~ "(" ~ this.generation.to!string ~ ")"; }
+	public override @property string rawRepresentation() { return "\"" ~ (ch < ' ' ? "\\x" ~ to!string(cast(uint)ch, 16) : ch.to!string) ~ "\""; }
 
 	mixin LinkNodeAcceptorImpl;
 }
 final class LinkWildcard : LinkNodeBase
 {
 	public override @property string representation() { return "[*](" ~ this.generation.to!string ~ ")"; }
+	public override @property string rawRepresentation(){ return "[*]"; }
 
 	public this(size_t g)
 	{
@@ -91,6 +107,7 @@ final class LinkAcceptNode : LinkNodeBase
 	ReduceAction reduce;
 
 	public override @property string representation() { return "[Accept to " ~ this.reduce.to!string ~ "(" ~ this.generation.to!string ~ ")]"; }
+	public override @property string rawRepresentation() { return "[Accept to " ~ this.reduce.to!string ~ "]"; }
 	public @property reduceAction(){ return this.reduce; }
 	
 	public this(size_t g, ReduceAction r)
@@ -104,6 +121,7 @@ final class LinkAcceptNode : LinkNodeBase
 final class LinkChaosNode : LinkNodeBase
 {
 	public override @property string representation() { return "[Chaos(" ~ this.generation.to!string ~ ")]"; }
+	public override @property string rawRepresentation(){ return "[Chaos]"; }
 
 	public this(size_t g)
 	{
@@ -120,7 +138,7 @@ interface ILinkNodeVisitor
 	public void visit(LinkAcceptNode);
 	public void visit(LinkChaosNode);
 
-	public final void visit(LinkNodBase) { assert(false); }
+	public final void visit(LinkNodeBase) { assert(false); }
 }
 interface ILinkNodeAcceptor
 {

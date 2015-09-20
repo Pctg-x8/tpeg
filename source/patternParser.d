@@ -36,31 +36,48 @@ class PatternParser : IVisitor
 
 		if(this.has_error) return;
 
-		writeln("--- LinkGraph ---");
-		this.linkGenerator.rootNode.dump(0);
+		/*writeln("--- LinkGraph ---");
+		this.linkGenerator.rootNode.dump(0);*/
 
 		// generate shift table
 		scope auto shiftTableGenerator = new ShiftTableGenerator();
-		shiftTableGenerator.generate(linkGenerator.rootNode);
-
-		/*writeln("--- Shift Table ---");
+		try
 		{
-			size_t[] columnSpaces = [[shiftTable.maxIndex.to!string.length, "state".length].reduce!max + 2];
+			shiftTableGenerator.generate(linkGenerator.rootNode);
+		}
+		catch(Exception e)
+		{
+			writeln(e.to!string);
+			this.has_error = true;
+		}
+
+		writeln("--- Shift Table ---");
+		{
+			size_t[] columnSpaces = [[shiftTableGenerator.shiftTable.maxIndex.to!string.length, "state".length].reduce!max + 2];
 			string[] separatorContents = ["-".repeat(columnSpaces[0]).join];
 			string[] headerContents = ["state".centering(columnSpaces[0])];
-			foreach(i, c; this.shiftTable.unescapedCandidates.array)
+			foreach(i, c; shiftTableGenerator.shiftTable.unescapedCandidates.array)
 			{
 				auto colChars = [c.length];
-				colChars ~= this.shiftTable.states.map!(a => a.actionList[i]).map!(a => a !is null ? a.toString.length : "  ".length).array;
+				colChars ~= shiftTableGenerator.shiftTable.states.map!(a => a.actionList[i]).map!(a => a !is null ? a.toString.length : "  ".length).array;
 				columnSpaces ~= colChars.reduce!max;
 				separatorContents ~= "-".repeat(columnSpaces[$ - 1]).join;
 				headerContents ~= c.centering(columnSpaces[$ - 1]);
 			}
+			{
+				// Cell for Wildcard(Default Behavior)
+				auto colChars = ["[*]".length];
+				colChars ~= shiftTableGenerator.shiftTable.states.map!(a => a.wildcardAction).map!(a => a !is null ? a.toString.length : "  ".length).array;
+				columnSpaces ~= colChars.reduce!max;
+				separatorContents ~= "-".repeat(columnSpaces[$ - 1]).join;
+				headerContents ~= "[*]".centering(columnSpaces[$ - 1]);
+			}
+
 
 			writeln("+", separatorContents.join("+"), "+");
 			writeln("|", headerContents.join("|"), "|");
 			writeln("+", separatorContents.join("+"), "+");
-			foreach(i, c; this.shiftTable.states)
+			foreach(i, c; shiftTableGenerator.shiftTable.states)
 			{
 				auto rowContents = [i.to!string.centering(columnSpaces[0])];
 				foreach(j, a; c.actionList)
@@ -68,10 +85,11 @@ class PatternParser : IVisitor
 					if(a !is null) rowContents ~= a.toString.centering(columnSpaces[j + 1]);
 					else rowContents ~= "  ".centering(columnSpaces[j + 1]);
 				}
+				rowContents ~= (c.wildcardAction !is null ? c.wildcardAction.toString : "  ").centering(columnSpaces[$ - 1]);
 				writeln("|", rowContents.join("|"), "|");
 			}
 			writeln("+", separatorContents.join("+"), "+");
-		}*/
+		}
 
 		writeln("--- Reduce Table ---");
 		{

@@ -11,29 +11,70 @@ class ShiftAction : TableActionBase
 {
 	size_t stateNum;
 
+	public @property state(){ return this.stateNum; }
 	public override @property TableActionBase dup() { return new ShiftAction(this.stateNum); }
 	public this(size_t sn) { this.stateNum = sn; }
 	public override string toString() { return "s" ~ this.stateNum.to!string; }
+	public override bool opEquals(Object o)
+	{
+		if(auto t = cast(ShiftAction)o) return t.stateNum == this.stateNum;
+		else return false;
+
+	}
 }
 class ReduceAction : TableActionBase
 {
+	bool with_shift = true;
 	size_t reduceNum;
 	bool isSkip;
 
-	public override @property TableActionBase dup() { return this.isSkip ? new ReduceAction() : new ReduceAction(this.reduceNum); }
+	public override @property TableActionBase dup()
+	{
+		auto instance = this.isSkip ? new ReduceAction() : new ReduceAction(this.reduceNum);
+		instance.with_shift = this.with_shift;
+		return instance;
+	}
+	public @property withoutShift()
+	{
+		auto clone = this.isSkip ? new ReduceAction() : new ReduceAction(this.reduceNum);
+		clone.with_shift = false;
+		return clone;
+	}
+	public @property withShift()
+	{
+		auto clone = this.isSkip ? new ReduceAction() : new ReduceAction(this.reduceNum);
+		clone.with_shift = true;
+		return clone;
+	}
+	public @property isShift() { return this.with_shift; }
 	public this(size_t rn) { this.reduceNum = rn; this.isSkip = false; }
 	public this() { this.reduceNum = size_t.max; this.isSkip = true; }
-	public override string toString() { return "r" ~ (this.isSkip ? "X" : this.reduceNum.to!string); }
+	public override string toString() { return (this.with_shift ? "sr" : "r") ~ (this.isSkip ? "X" : this.reduceNum.to!string); }
+	public override bool opEquals(Object o)
+	{
+		if(auto t = cast(ReduceAction)o)
+		{
+			if(t.isSkip && this.isSkip) return true;
+			else return ((!t.isSkip && !this.isSkip) && t.reduceNum == this.reduceNum && t.with_shift == this.with_shift);
+		}
+		else return false;
+	}
 }
 class ShiftTable
 {
-	static class ShiftState
+	public static class ShiftState
 	{
-		TableActionBase[] actionList;
-		TableActionBase wildcardAction;
+		public TableActionBase[] actionList;
+		public TableActionBase wildcardAction;
+
+		public override bool opEquals(Object o)
+		{
+			if(auto t = cast(ShiftState)o) return t.actionList[] == this.actionList[] && t.wildcardAction == this.wildcardAction;
+			return false;
+		}
 	}
 	ShiftState[] states;
-	dchar[] candidates;
+	dchar[] _candidates;
 	size_t[dchar] candidateToIndex;
 	size_t currentStateIndex;
 	size_t[] stateStock;
@@ -44,6 +85,10 @@ class ShiftTable
 		immutable string[dchar] unescapeMap = ['\n': "\\n", '\r': "\\r", '\t': "\\t"];
 		return this.candidates.map!(a => (a in unescapeMap) ? unescapeMap[a] : a.to!string);
 	}
+	public @property candidates() pure { return this._candidates; }
+	public @property stateList() pure { return this.states; }
+
+	public auto getState(size_t st) { return this.states[st]; }
 
 	public auto appendNewState()
 	{
@@ -54,7 +99,7 @@ class ShiftTable
 	public auto appendNewCandidate(dchar ch)
 	{
 		if(ch in this.candidateToIndex) return this.candidateToIndex[ch];
-		this.candidates ~= ch;
+		this._candidates ~= ch;
 		this.candidateToIndex[ch] = this.candidates.length - 1;
 		foreach(st; this.states) st.actionList ~= null;
 		return this.candidates.length - 1;
@@ -65,9 +110,10 @@ class ShiftTable
 		this.currentStateIndex = st;
 		return ps;
 	}
-	public void pushCurrentState()
+	public void pushCurrentState(size_t st)
 	{
 		this.stateStock ~= this.currentStateIndex;
+		this.setCurrentState(st);
 	}
 	public void popCurrentState()
 	{
@@ -77,41 +123,81 @@ class ShiftTable
 	}
 	public auto registerAction(dchar ch, TableActionBase ta)
 	{
+		// Reporter Functions
+		void reportInfo(string msg)
+		{
+			writeln("Info: ", msg, " on candidate ", ch, ", state ", this.currentStateIndex);
+		}
+		void reportWarn(string msg)
+		{
+			writeln("Warn: ", msg, " on candidate ", ch, ", state ", this.currentStateIndex);
+		}
+		template RaiseConflict(string type)
+		{
+			const RaiseConflict =
+				"throw new Exception(\"" ~ type ~ "/" ~ type ~ " conflict " ~
+				"on candidate \" ~ ch.to!string ~ \", state \" ~ this.currentStateIndex.to!string ~ " ~ 
+				"\"(Already registered: \" ~ this.anyAction(ch).toString ~ \")\");";
+		}
 		if(ch !in this.candidateToIndex) this.appendNewCandidate(ch);
 
-		if(ta.toString.front == 's')
+		if(ta is null) return;	// no place
+		auto cr = this.anyAction(ch);
+		if(cr !is null && ta != cr)
 		{
-			// shift
-			if(this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]] !is null)
+			if(auto targetRecord = cast(ShiftAction)ta)
 			{
-				switch(this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]].toString.front)
+				// shift
+				if(auto currentRecord = cast(ReduceAction)cr)
 				{
-				case 'r': writeln("Info: overwriting reduce by shift. on candidate " ~ ch.to!string ~ ", state " ~ this.currentStateIndex.to!string); break;
-				case 's': throw new Exception("shift/shift conflict on candidate " ~ ch.to!string ~ ", state " ~ this.currentStateIndex.to!string);
-				default: assert(0, "internal error");
+					// reduce -> shift
+					reportInfo("overwriting reduce by shift.");
 				}
-				
+				else if(auto currentRecord = cast(ShiftAction)cr)
+				{
+					// shift -> shift
+					mixin(RaiseConflict!"shift");
+				}
+				else assert(false, "internal error");
 			}
-		}
-		else if(ta.toString.front == 'r')
-		{
-			// reduce
-			if(this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]] !is null)
+			else if(auto targetRecord = cast(ReduceAction)ta)
 			{
-				switch(this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]].toString.front)
+				// reduce
+				if(auto currentRecord = cast(ReduceAction)cr)
 				{
-				case 'r': throw new Exception("reduce/reduce conflict on candidate " ~ ch.to!string ~ ", state " ~ this.currentStateIndex.to!string);
-				case 's': writeln("Warn: overwriting shift by reduce is not allowed. ignored. on candidate " ~ ch.to!string ~ ", state " ~ this.currentStateIndex.to!string); break;
-				default: assert(0, "internal error");
+					// reduce -> reduce
+					mixin(RaiseConflict!"reduce");
 				}
+				else if(auto currentRecord = cast(ShiftAction)cr)
+				{
+					// shift -> reduce
+					reportWarn("overwriting shift by reduce is not allowed. ignored.");
+					return;
+				}
+				else assert(false, "internal error");
 			}
 		}
 		this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]] = ta.dup;
 	}
 	public auto registerAnyAction(TableActionBase ta)
 	{
-		this.states[this.currentStateIndex].wildcardAction = ta.dup;
+		this.states[this.currentStateIndex].wildcardAction = ta is null ? null : ta.dup;
 	}
+	template actionGetter(ActionT)
+	{
+		public ActionT actionGetter(dchar ch)
+		{
+			if(ch !in this.candidateToIndex) return null;
+			return cast(ActionT)this.states[this.currentStateIndex].actionList[this.candidateToIndex[ch]];
+		}
+		public ActionT actionGetter()
+		{
+			return cast(ActionT)this.states[this.currentStateIndex].wildcardAction;
+		}
+	}
+	public alias anyAction = actionGetter!TableActionBase;
+	public alias shift = actionGetter!ShiftAction;
+	public alias reduce = actionGetter!ReduceAction;
 
 	public this()
 	{
