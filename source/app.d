@@ -6,8 +6,9 @@ import com.cterm2.tpeg.treeDump;
 import com.cterm2.tpeg.symbolFinder;
 import com.cterm2.tpeg.patternParser;
 import com.cterm2.tpeg.processTree;
-import com.cterm2.tpeg.codegen;
+import com.cterm2.tpeg.tokenizerGenerator;
 import com.cterm2.tpeg.parserGenerator;
+import com.cterm2.tpeg.parserIndexAlloc;
 import Settings = com.cterm2.tpeg.settings;
 
 enum ErrorState : int
@@ -64,8 +65,11 @@ int main(string[] args)
 	}
 
 	if(isVerbose) writeln("1st generating code...");
-	scope auto codeGenerator = new CodeGenerator();
-	codeGenerator.entry(sourceTree);
+	scope auto tokenizerGenerator = new TokenizerGenerator();
+	tokenizerGenerator.run(patternParser);
+	if(isVerbose) writeln("allocating parser index...");
+	scope auto parserIndexAllocator = new ParserIndexAllocator();
+	parserIndexAllocator.entry(sourceTree);
 	if(isVerbose) writeln("generating reducing process tree...");
 	scope auto processTreeGen = new ProcessTreeGenerator();
 	processTreeGen.entry(sourceTree);

@@ -21,16 +21,23 @@ auto centering(string content, size_t totalSpace)
 class PatternParser : IVisitor
 {
 	bool has_error;
-	ShiftTable shiftTable;
-	ReduceTable reduceTable;
+	string[] package_name;
+	string module_name;
+	ShiftTable shift_table;
+	ReduceTable reduce_table;
 	LinkGenerator linkGenerator;
+
+	public @property packageName(){ return this.package_name; }
+	public @property moduleName(){ return this.module_name; }
+	public @property shiftTable(){ return this.shift_table; }
+	public @property reduceTable(){ return this.reduce_table; }
 
 	public @property hasError() pure { return this.has_error; }
 	public void entry(ScriptNode node)
 	{
 		this.has_error = false;
-		this.shiftTable = new ShiftTable();
-		this.reduceTable = new ReduceTable();
+		this.shift_table = new ShiftTable();
+		this.reduce_table = new ReduceTable();
 		this.linkGenerator = new LinkGenerator;
 		node.accept(this);
 
@@ -50,6 +57,7 @@ class PatternParser : IVisitor
 			writeln(e.to!string);
 			this.has_error = true;
 		}
+		this.shift_table = shiftTableGenerator.shiftTable;
 
 		writeln("--- Shift Table ---");
 		{
@@ -115,10 +123,12 @@ class PatternParser : IVisitor
 
 	public override void visit(ScriptNode node)
 	{
+		this.package_name = node.packageName;
 		if(node.tokenizer) node.tokenizer.accept(this);
 	}
 	public override void visit(TokenizerNode node)
 	{
+		this.module_name = node.moduleName;
 		foreach(n; node.skipPatterns) n.accept(this);
 		foreach(n; node.patterns) n.accept(this);
 	}
@@ -143,7 +153,7 @@ class PatternParser : IVisitor
 		ReduceAction reduceAct;
 		if(node.tokenName !is null)
 		{
-			auto reduceNumToThis = this.reduceTable.registerTarget(node.tokenName);
+			auto reduceNumToThis = this.reduce_table.registerTarget(node.tokenName);
 			writeln("ReduceAction: registered ", node.tokenName, " to ", reduceNumToThis);
 			reduceAct = new ReduceAction(reduceNumToThis);
 		}

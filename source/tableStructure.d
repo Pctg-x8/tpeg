@@ -28,6 +28,8 @@ class ReduceAction : TableActionBase
 	size_t reduceNum;
 	bool isSkip;
 
+	public @property reduceIndex(){ return this.reduceNum; }
+
 	public override @property TableActionBase dup()
 	{
 		auto instance = this.isSkip ? new ReduceAction() : new ReduceAction(this.reduceNum);
@@ -67,6 +69,10 @@ class ShiftTable
 		public TableActionBase[] actionList;
 		public TableActionBase wildcardAction;
 
+		public @property nothing(){ return this.actionList.all!(a => a is null) && this.wildcardAction is null; }
+		public @property wildcardOnly(){ return this.actionList.all!(a => a is null) && this.wildcardAction !is null; }
+		public @property solid(){ return this.wildcardOnly || this.actionList.filter!(a => a !is null).count == 1; }
+
 		public override bool opEquals(Object o)
 		{
 			if(auto t = cast(ShiftState)o) return t.actionList[] == this.actionList[] && t.wildcardAction == this.wildcardAction;
@@ -87,6 +93,11 @@ class ShiftTable
 	}
 	public @property candidates() pure { return this._candidates; }
 	public @property stateList() pure { return this.states; }
+	public auto indexFromUnescapedCandidate(string c) pure
+	{
+		immutable dchar[string] escapeMap = [r"\n": '\n', r"\r": '\r', r"\t": '\t'];
+		return this.candidateToIndex[c in escapeMap ? escapeMap[c] : c.front];
+	}
 
 	public auto getState(size_t st) { return this.states[st]; }
 
@@ -209,6 +220,9 @@ class ReduceTable
 {
 	string[] reduceTargets;
 	size_t[string] reduceTargetsToIndex;
+
+	public @property reduceTargetNames(){ return this.reduceTargets; }
+	public auto reduceTargetName(size_t index) { return this.reduceTargets[index]; }
 
 	public auto registerTarget(string targetName)
 	{
