@@ -3,7 +3,7 @@ module com.cterm2.tpeg.tokenizerGenerator;
 import com.cterm2.tpeg.patternParser;
 import com.cterm2.tpeg.tableStructure;
 import settings = com.cterm2.tpeg.settings;
-import std.stdio, std.path, std.array, std.range;
+import std.stdio, std.path, std.array, std.range, std.algorithm;
 
 class TokenizerGenerator
 {
@@ -24,6 +24,8 @@ class TokenizerGenerator
 		this.expandShiftTable();
 		this.file.writeln("\t", "return tokenList;");
 		this.file.writeln("}");
+		this.file.writeln();
+		this.generateReduceHookers();
 		this.file.close();
 	}
 
@@ -31,20 +33,31 @@ class TokenizerGenerator
 	{
 		void generateTokenEnumerator()
 		{
+			void generateTokenNameList(RangeT)(RangeT namelist)
+			if(isInputRange!RangeT && is(ElementType!RangeT == string))
+			{
+				string lineStr = null;
+				foreach(r; namelist)
+				{
+					// formatWrite
+					if(lineStr.length >= 80 - 4)
+					{
+						this.file.writeln("\t", lineStr);
+						lineStr = null;
+					}
+					lineStr ~= r ~ ", ";
+				}
+				this.file.writeln("\t", lineStr);
+			}
 			this.file.writeln("public enum EnumTokenType");
 			this.file.writeln("{");
-			string lineStr = null;
-			foreach(r; this.parserEntity.reduceTable.reduceTargetNames ~ "__INPUT_END__")
+			generateTokenNameList(this.parserEntity.reduceTable.reduceTargetNames);
+			foreach(s, t; this.parserEntity.specializes)
 			{
-				// formatWrite
-				if(lineStr.length >= 80 - 4)
-				{
-					this.file.writeln("\t", lineStr);
-					lineStr = null;
-				}
-				lineStr ~= r ~ ", ";
+				this.file.writeln("\n\t", "// Special Reduce for ", s);
+				generateTokenNameList(t.map!(a => a.tokenName));
 			}
-			if(lineStr.length > 2) this.file.writeln("\t", lineStr[0 .. $ - 2]);
+			this.file.writeln("\n\t", "__INPUT_END__");
 			this.file.writeln("}");
 		}
 		void generateLocationStructure()
@@ -179,6 +192,23 @@ class TokenizerGenerator
 	}
 	private void generateBehavior(size_t currentPhase, size_t tabDepth, TableActionBase act)
 	{
+		auto getTokenGenerateMethod(string reduceName, bool withShift)
+		{
+			immutable usingLocation = currentPhase == 0 ? "loc" : "cloc";
+			immutable usingText = currentPhase == 0 && withShift ? "inputRange.front.to!string"
+				: (withShift ? "inputHolder ~ inputRange.front.to!string" : "inputHolder");
+
+			if(reduceName in this.parserEntity.specializes)
+			{
+				// use specialize
+				return "reduceHooker_" ~ reduceName ~ "(" ~ usingLocation ~ ", " ~ usingText ~ ")";
+			}
+			else
+			{
+				return "new Token(" ~ usingLocation ~ ", EnumTokenType." ~ reduceName ~ ", " ~ usingText ~ ")";
+			}
+		}
+
 		if(auto sh = cast(ShiftAction)act)
 		{
 			// shift and goto
@@ -196,6 +226,7 @@ class TokenizerGenerator
 				{
 					this.file.writeln("\t".repeat(tabDepth).join, "forward();");
 				}
+				this.file.writeln("\t".repeat(tabDepth).join, "inputHolder = null;");
 				this.file.writeln("\t".repeat(tabDepth).join, "currentState = 0;");
 			}
 			else
@@ -206,18 +237,7 @@ class TokenizerGenerator
 				if(re.isShift)
 				{
 					// shift then reduce
-					if(currentPhase == 0)
-					{
-						// use loc
-						this.file.writeln("\t".repeat(tabDepth).join,
-							"tokenList ~= new Token(loc, EnumTokenType." ~ reduceName ~ ", inputRange.front.to!string);");
-					}
-					else
-					{
-						// use cloc
-						this.file.writeln("\t".repeat(tabDepth).join,
-							"tokenList ~= new Token(cloc, EnumTokenType." ~ reduceName ~ ", inputHolder ~ inputRange.front.to!string);");
-					}
+					this.file.writeln("\t".repeat(tabDepth).join, "tokenList ~= ", getTokenGenerateMethod(reduceName, true), ";");
 					this.file.writeln("\t".repeat(tabDepth).join, "forward();");
 				}
 				else
@@ -225,11 +245,34 @@ class TokenizerGenerator
 					// reduce only(not expected in initial phase)
 					assert(currentPhase != 0);
 					// use cloc
-					this.file.writeln("\t".repeat(tabDepth).join, "tokenList ~= new Token(cloc, EnumTokenType." ~ reduceName ~ ", inputHolder);");
+					this.file.writeln("\t".repeat(tabDepth).join, "tokenList ~= ", getTokenGenerateMethod(reduceName, false), ";");
 				}
-				if(currentPhase != 0) this.file.writeln("\t".repeat(tabDepth).join, "currentState = 0;");
+				if(currentPhase != 0)
+				{
+					this.file.writeln("\t".repeat(tabDepth).join, "inputHolder = null;");
+					this.file.writeln("\t".repeat(tabDepth).join, "currentState = 0;");
+				}
 			}
 		}
 		else assert(false);
+	}
+	void generateReduceHookers()
+	{
+		foreach(s, t; this.parserEntity.specializes)
+		{
+			this.file.writeln("auto reduceHooker_", s, "(Location loc, string text)");
+			this.file.writeln("{");
+			this.file.writeln("\t", "switch(text)");
+			this.file.writeln("\t", "{");
+			foreach(r; t)
+			{
+				this.file.writeln("\t", "case ", r.patternString, ":");
+				this.file.writeln("\t\t", "return new Token(loc, EnumTokenType.", r.tokenName, ", text);");
+			}
+			this.file.writeln("\t", "default:");
+			this.file.writeln("\t\t", "return new Token(loc, EnumTokenType.", s, ", text);");
+			this.file.writeln("\t", "}");
+			this.file.writeln("}");
+		}
 	}
 }

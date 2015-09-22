@@ -430,11 +430,11 @@ class ShiftTableGenerator
 				this.conversionTable[i + 1] = ShiftStateTranslated(i + 1, newState);
 			}
 
-			writeln("--Optimizer Conversion Table---");
+			/*writeln("--Optimizer Conversion Table---");
 			foreach(from; this.conversionTable.keys.sort!"a < b")
 			{
 				writeln("-- s", from, " -> ", this.conversionTable[from]);
-			}
+			}*/
 
 			// replace all shift actions and place new state lines
 			// state 0(specialize)

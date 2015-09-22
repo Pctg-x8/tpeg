@@ -107,7 +107,7 @@ void generateElementParser(File f) in { assert(f.isOpen); } body
     f.writeDeclarationEnd(4);
     f.writeln(4.toTabs, "else");
     f.writeln(4.toTabs, "{");
-    f.writeln(5.toTabs, "_memo[r] = ResultType(false, r, TokenIterator(r.pos + 1, r.token));");
+    f.writeln(5.toTabs, "_memo[r] = ResultType(false, r, TokenIterator(r.pos, r.token));");
     f.writeDeclarationEnd(4);
     f.writeDeclarationEnd(3);
     f.writeln();
@@ -183,7 +183,7 @@ class ParserGenerator : IVisitor
         this.currentFile.writeModuleName(this.packageName ~ node.moduleName);
         this.currentFile.writeln();
         this.currentFile.writeImports([this.packageName ~ this.lexerModuleName]);
-        this.currentFile.writeImports([["std", "array"], ["std", "algorithm"]]);
+        this.currentFile.writeImports([["std", "array"], ["std", "algorithm"], ["std", "stdio"]]);
         this.currentFile.writeln();
         if(!node.headerPart.empty)
         {
@@ -360,7 +360,7 @@ class ParserGenerator : IVisitor
                     {
                     	// register dummy
                     	this.currentFile.writeln(3.toTabs, "/* DUMMY FOR ACTION REFERENCING */");
-                    	this.currentFile.writeln(3.toTabs, "retrun ResultType(true, r, r, new PartialTreeType([null]));");
+                    	this.currentFile.writeln(3.toTabs, "return ResultType(true, r, r, new PartialTreeType([null]));");
                     	continue;
                 	}
                     this.currentFile.writeln();
@@ -425,7 +425,7 @@ class ParserGenerator : IVisitor
                     this.currentFile.writeln(3.toTabs, "treeList ~= resTemp.value;");
                     this.currentFile.writeln(3.toTabs, "r = resTemp.iterNext;");
                 }
-                this.currentFile.writeln(3.toTabs, "return ResultType(true, resTemp.iterNext, resTemp.iterError, new PartialTreeType(treeList));");
+                this.currentFile.writeln(3.toTabs, "return ResultType(true, r, resTemp.iterError, new PartialTreeType(treeList));");
                 this.currentState = EnumCurrentState.GenerateParsingStructures;
                 this.currentFile.writePartialParserFooter();
             }
@@ -510,7 +510,7 @@ class ParserGenerator : IVisitor
                 this.currentState = EnumCurrentState.GenerateParsingStructures;
                 this.currentFile.writeln(3.toTabs, "if(result.failed)");
                 this.currentFile.writeln(3.toTabs, "{");
-                this.currentFile.writeln(4.toTabs, "return ResultType(true, r, r, new PartialTreeType(null));");
+                this.currentFile.writeln(4.toTabs, "return ResultType(true, r, result.iterError, new PartialTreeType(null));");
                 this.currentFile.writeDeclarationEnd(3);
                 this.currentFile.writeln(3.toTabs, "else");
                 this.currentFile.writeln(3.toTabs, "{");

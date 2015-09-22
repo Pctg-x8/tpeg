@@ -26,13 +26,13 @@ public class FileWriter with IWriter
 		this.writer.write(str);
 	}
 }
-extension for IWriter
+/*extension for IWriter
 {
 	public void writeln(String st...)
 	{
 		this.write(st, "\n");
 	}
-}
+}*/
 
 void main()
 {
@@ -43,7 +43,7 @@ void main()
 	auto fnWriter = function(IWriter wr, String msg)
 	{
 		wr.write(msg);
-	}
+	};
 
 	cw.writeln("123");
 	fw.write("123", "456");

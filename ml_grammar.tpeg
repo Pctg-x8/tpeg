@@ -26,9 +26,9 @@ tokenizer
 	{
 		INUMBER		("0"-"9")+
 		HNUMBER		"0x" ("0"-"9" / "A"-"F" / "a"-"f")+
-		FNUMBER		(("0"-"9")+ "." / ".") ("0"-"9")* ("F" / "f")
-		DNUMBER		(("0"-"9")+ "." / ".") ("0"-"9")* ("D" / "d")
-		NUMBER		(("0"-"9")+ "." / ".") ("0"-"9")*
+		FNUMBER		(("0"-"9")+ "." / ".") ("0"-"9")+ ("F" / "f")
+		DNUMBER		(("0"-"9")+ "." / ".") ("0"-"9")+ ("D" / "d")
+		NUMBER		(("0"-"9")+ "." / ".") ("0"-"9")+
 		DNUMBER2	"." ("0"-"9")* ("D" / "d")
 		NUMBER2		"." ("0"-"9")+
 		STRING		"\"" ("\\" ? / ?)* "\""
@@ -103,7 +103,7 @@ tokenizer
 		ALIAS		"alias"
 		USING		"using"
 		PROPERTY	"property"
-		FUNCTION	"funcion"
+		FUNCTION	"function"
 
 		IF			"if"
 		ELSE		"else"
@@ -124,6 +124,7 @@ tokenizer
 		TRUE		"true"
 		FALSE		"false"
 		NULL		"null"
+		NEW			"new"
 
 		PUBLIC		"public"
 		PRIVATE		"private"
@@ -233,7 +234,8 @@ import std.typecons, std.conv;
 			((method_qualifier:mq {q = q.combine(mq);})* type:tt { t = tt; } / (method_qualifier:mq {q = q.combine(mq);})+)
 				def_id:id LP [varg_list:vpl { vps = vpl; }] RP EQUAL expression:e SEMICOLON
 				{ return new MethodDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, id, vps, e); };
-		abstract_method_def = { TypeNode t = null; VirtualParamNode[] vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
+		abstract_method_def =
+			{ TypeNode t = null; VirtualParamNode[] vps = null; auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
 			((method_qualifier:mq {q = q.combine(mq);})* type:tt { t = tt; } / (method_qualifier:mq {q = q.combine(mq);})+)
 				def_id:id LP [varg_list:vpl { vps = vpl; }] RP SEMICOLON
 				{ return new MethodDeclarationNode(q.location.line == int.max ? t.location : q.location, q, t, id, vps); };
@@ -252,8 +254,10 @@ import std.typecons, std.conv;
 		ctor_quals = { auto q = Qualifier(Location(int.max, int.max), Qualifiers.Private); }
 			(ctor_qualifier:cq { q = q.combine(cq); })* { return q; };
 		full_ctor_def =
-			  ctor_quals:q THIS:ft LP varg_list:vl RP statement:st	{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, vl, st); }
-			/ ctor_quals:q THIS:ft LP RP statement:st				{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, null, st); };
+			  ctor_quals:q THIS:ft LP varg_list:vl RP statement:st
+			  	{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, vl, st); }
+			/ ctor_quals:q THIS:ft LP RP statement:st
+				{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, null, st); };
 		abs_ctor_def =
 			  ctor_quals:q THIS:ft LP varg_list:vl RP SEMICOLON	{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, vl, null); }
 			/ ctor_quals:q THIS:ft LP RP SEMICOLON				{ return new ConstructorDeclarationNode(q.location.line == int.max ? ft.location : q.location, q, null, null); };
@@ -323,7 +327,7 @@ import std.typecons, std.conv;
 			/ CASE:ft def_id:id COLON type:t IF expression:e RARROW2 statement:st		{ return new TypeCaseSectionNode(ft.location, false, id, t, e, st); }
 			/ CASE:ft def_id:id COLON type:t RARROW2 statement:st						{ return new TypeCaseSectionNode(ft.location, false, id, t, null, st); };
 		default_stmt = DEFAULT:ft RARROW2 statement:s { return new DefaultSectionNode(ft.location, s); };
-		block_stmt = LBR:t { StatementNode[] stmts; } (localvar_def:lvd { stmts ~= lvd; } / statement:st { stmts ~= st; })* RBR
+		block_stmt = LB:t { StatementNode[] stmts; } (localvar_def:lvd { stmts ~= lvd; } / statement:st { stmts ~= st; })* RB
 			{ return new BlockStatementNode(t.location, stmts); };
 		localvar_def = full_lvd:flvd { return flvd; } / inferenced_lvd:ilvd { return ilvd; };
 		nvp_list = { NameValuePair[] nvps; } nvpair:nvp { nvps ~= nvp; } (COMMA nvpair:nvp2 { nvps ~= nvp2; })* { return nvps; };
@@ -401,12 +405,14 @@ import std.typecons, std.conv;
 			/ RARROW single_types:st				{ e = new CastingNode(e, st); }
 			/ RARROW LP restricted_type:rt RP		{ e = new CastingNode(e, rt); })* { return e; };
 		primary_expr<ExpressionNode> =
-			  literals:l						{ return l; }
-			/ special_literals:sl				{ return sl; }
-			/ lambda_expr:le					{ return le; }
-			/ LP expression:e RP				{ return e; }
-			/ IDENTIFIER:id template_tail:tt	{ return new TemplateInstantiateNode(id.location, id.text, tt); }
-			/ IDENTIFIER:id						{ return new IdentifierReferenceNode(id.location, id.text); };
+			  literals:l								{ return l; }
+			/ special_literals:sl						{ return sl; }
+			/ lambda_expr:le							{ return le; }
+			/ LP expression:e RP						{ return e; }
+			/ NEW:t type:tp								{ return new NewInstanceNode(t.location, tp); }
+			/ NEW:t type:tp LP expression_list:ps RP	{ return new NewInstanceNode(t.location, tp, ps); }
+			/ IDENTIFIER:id template_tail:tt			{ return new TemplateInstantiateNode(id.location, id.text, tt); }
+			/ IDENTIFIER:id								{ return new IdentifierReferenceNode(id.location, id.text); };
 		literals<ExpressionNode> =
 			  INUMBER:t				{ return new IntLiteralNode(t.location, t.text.to!int); }
 			/ HNUMBER:t				{ return new IntLiteralNode(t.location, t.text.to!int(16)); }
@@ -456,15 +462,11 @@ import std.typecons, std.conv;
 			/ type:t { return new VirtualParamNode(t, null, null, false); };
 		literal_varg_list = { VirtualParamNode[] params; }
 			literal_varg:p1 { params ~= p1; } (COMMA literal_varg:p2 { params ~= p2; })* { return params; };
-		literal_varg =
-			  type:t IDENTIFIER:id EQUAL expression:e PERIOD3	{ return new VirtualParamNode(t, id.text, e, true); }
-			/ type:t IDENTIFIER:id EQUAL expression:e			{ return new VirtualParamNode(t, id.text, e, false); }
-			/ type:t IDENTIFIER:id PERIOD3						{ return new VirtualParamNode(t, id.text, null, true); }
-			/ type:t IDENTIFIER:id								{ return new VirtualParamNode(t, id.text, null, false); }
-			/ IDENTIFIER:id EQUAL expression:e PERIOD3			{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, e, true); }
-			/ IDENTIFIER:id EQUAL expression:e					{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, e, false); }
-			/ IDENTIFIER:id PERIOD3								{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, null, true); }
-			/ IDENTIFIER:id										{ return new VirtualParamNode(new InferenceTypeNode(id.location), id.text, null, false); };
+		literal_varg = { TypeNode at = null; ExpressionNode dv = null; bool isVariant = false; }
+			[type:t { at = t; }]
+			IDENTIFIER:id [EQUAL expression:e { dv = e; }]
+			[PERIOD3 { isVariant = true; }]
+				{ return new VirtualParamNode(at !is null ? at : new InferenceTypeNode(id.location), id.text, dv, isVariant); };
 		assoc_array_element_list = { AssocArrayElementNode[] nodes; }
 			assoc_array_element:n { nodes ~= n; } (COMMA assoc_array_element:n2 { nodes ~= n2; })* { return nodes; };
 		assoc_array_element =
@@ -546,8 +548,8 @@ import std.typecons, std.conv;
 			/ LBR RBR { pt = new ArrayTypeNode(pt, null); })*
 			{ return pt; };
 		primitive_types<TypeNode> = register_types:rt { return rt; }
-			/ template_instance:ti { return ti; }
-			/ __typeof:to { return to; };
+			/ { TypeNode tnode; } (template_instance:ti { tnode = ti; } / __typeof:to { tnode = to; })
+				(PERIOD template_instance:tint { tnode = new TypeScopeResolverNode(tnode, tint); })* { return tnode; };
 		__typeof<TypeofNode> =
 			TYPEOF:f LP (expression:e RP { return new TypeofNode(f.location, e); }
 			/ restricted_type:rt RP { return new TypeofNode(f.location, rt); });

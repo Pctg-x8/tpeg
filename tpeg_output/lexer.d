@@ -14,6 +14,14 @@ public enum EnumTokenType
 	CA_EQ, LAB2_EQ, RAB2_EQ, AMPASAND2, VL2, CA2, PLUS, MINUS, ASTERISK, SLASH, 
 	PERCENT, AMPASAND, VL, CA, LAB2, RAB2, LAB, RAB, LAB_EQ, RAB_EQ, EQ2, EX_EQ, 
 	QUESTION, PLUS2, MINUS2, ASTERISK2, PERIOD2, PERIOD3, LP, RP, LB, RB, LBR, RBR, 
+
+	// Special Reduce for IDENTIFIER
+	PACKAGE, IMPORT, CLASS, TRAIT, ENUM, EXTENDS, WITH, TEMPLATE, ALIAS, USING, 
+	PROPERTY, FUNCTION, IF, ELSE, WHILE, DO, FOREACH, FOR, RETURN, BREAK, CONTINUE, 
+	SWITCH, CASE, DEFAULT, TYPEOF, THIS, SUPER, TRUE, FALSE, NULL, NEW, PUBLIC, 
+	PRIVATE, PROTECTED, FINAL, CONST, STATIC, OVERRIDE, AUTO, VOID, CHAR, UCHAR, 
+	BYTE, SHORT, USHORT, INT, UINT, LONG, ULONG, 
+
 	__INPUT_END__
 }
 public struct Location
@@ -75,18 +83,22 @@ public auto tokenizeStr(string input)
 			{
 			case ' ': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '\t': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '\r': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '\n': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '/': 
@@ -621,10 +633,12 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.SLASH_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.SLASH, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -634,6 +648,7 @@ public auto tokenizeStr(string input)
 			{
 			case '\n': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
@@ -661,6 +676,7 @@ public auto tokenizeStr(string input)
 			{
 			case '/': 
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
@@ -732,6 +748,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.INUMBER, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -786,6 +803,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.INUMBER, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -797,26 +815,6 @@ public auto tokenizeStr(string input)
 				inputHolder ~= inputRange.front;
 				forward();
 				currentState = 8;
-				break;
-			case 'F': 
-				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
-				break;
-			case 'f': 
-				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
-				break;
-			case 'D': 
-				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
-				break;
-			case 'd': 
-				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
 				break;
 			case '1': 
 				inputHolder ~= inputRange.front;
@@ -864,9 +862,7 @@ public auto tokenizeStr(string input)
 				currentState = 8;
 				break;
 			default: 
-				tokenList ~= new Token(cloc, EnumTokenType.NUMBER, inputHolder);
-				currentState = 0;
-				break;
+				throw new TokenizeError("Unrecognized character: " ~ inputRange.front.to!string, loc);
 			}
 			break;
 		case 8: 
@@ -879,21 +875,25 @@ public auto tokenizeStr(string input)
 			case 'F': 
 				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case 'f': 
 				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case 'D': 
 				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case 'd': 
 				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '1': 
@@ -934,6 +934,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.NUMBER2, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1148,6 +1149,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.HNUMBER, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1165,24 +1167,16 @@ public auto tokenizeStr(string input)
 				forward();
 				currentState = 12;
 				break;
-			case 'F': 
-				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
-				break;
-			case 'f': 
-				tokenList ~= new Token(cloc, EnumTokenType.FNUMBER, inputHolder ~ inputRange.front.to!string);
-				forward();
-				currentState = 0;
-				break;
 			case 'D': 
 				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case 'd': 
 				tokenList ~= new Token(cloc, EnumTokenType.DNUMBER2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '1': 
@@ -1232,6 +1226,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.PERIOD, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1242,10 +1237,12 @@ public auto tokenizeStr(string input)
 			case '.': 
 				tokenList ~= new Token(cloc, EnumTokenType.PERIOD3, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.PERIOD2, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1256,6 +1253,7 @@ public auto tokenizeStr(string input)
 			case '"': 
 				tokenList ~= new Token(cloc, EnumTokenType.STRING, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '\\': 
@@ -1280,6 +1278,7 @@ public auto tokenizeStr(string input)
 			case '\'': 
 				tokenList ~= new Token(cloc, EnumTokenType.CHARACTER, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
@@ -1544,7 +1543,8 @@ public auto tokenizeStr(string input)
 				forward();
 				break;
 			default: 
-				tokenList ~= new Token(cloc, EnumTokenType.IDENTIFIER, inputHolder);
+				tokenList ~= reduceHooker_IDENTIFIER(cloc, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1555,20 +1555,24 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.MINUS_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '-': 
 				tokenList ~= new Token(cloc, EnumTokenType.MINUS2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '>': 
 				tokenList ~= new Token(cloc, EnumTokenType.RARROW, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.MINUS, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1579,15 +1583,18 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.EQ2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '>': 
 				tokenList ~= new Token(cloc, EnumTokenType.RARROW2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.EQUAL, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1598,11 +1605,13 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.LAB_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '-': 
 				tokenList ~= new Token(cloc, EnumTokenType.LARROW, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '<': 
@@ -1612,6 +1621,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.LAB, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1622,10 +1632,12 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.LAB2_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.LAB2, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1636,15 +1648,18 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.PLUS_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '+': 
 				tokenList ~= new Token(cloc, EnumTokenType.PLUS2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.PLUS, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1655,15 +1670,18 @@ public auto tokenizeStr(string input)
 			case '*': 
 				tokenList ~= new Token(cloc, EnumTokenType.ASTERISK2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.ASTERISK_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.ASTERISK, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1674,10 +1692,12 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.PERCENT_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.PERCENT, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1688,15 +1708,18 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.AMPASAND_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '&': 
 				tokenList ~= new Token(cloc, EnumTokenType.AMPASAND2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.AMPASAND, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1707,15 +1730,18 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.VL_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '|': 
 				tokenList ~= new Token(cloc, EnumTokenType.VL2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.VL, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1726,15 +1752,18 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.CA_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '^': 
 				tokenList ~= new Token(cloc, EnumTokenType.CA2, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.CA, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1745,6 +1774,7 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.RAB_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			case '>': 
@@ -1754,6 +1784,7 @@ public auto tokenizeStr(string input)
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.RAB, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1764,10 +1795,12 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.RAB2_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
 				tokenList ~= new Token(cloc, EnumTokenType.RAB2, inputHolder);
+				inputHolder = null;
 				currentState = 0;
 				break;
 			}
@@ -1778,6 +1811,7 @@ public auto tokenizeStr(string input)
 			case '=': 
 				tokenList ~= new Token(cloc, EnumTokenType.EX_EQ, inputHolder ~ inputRange.front.to!string);
 				forward();
+				inputHolder = null;
 				currentState = 0;
 				break;
 			default: 
@@ -1790,4 +1824,111 @@ public auto tokenizeStr(string input)
 	if(currentState != 0) throw new TokenizeError("Tokenizer is not terminated by " ~ inputRange.front.to!string, loc);
 	tokenList ~= new Token(loc, EnumTokenType.__INPUT_END__);
 	return tokenList;
+}
+
+auto reduceHooker_IDENTIFIER(Location loc, string text)
+{
+	switch(text)
+	{
+	case "package":
+		return new Token(loc, EnumTokenType.PACKAGE, text);
+	case "import":
+		return new Token(loc, EnumTokenType.IMPORT, text);
+	case "class":
+		return new Token(loc, EnumTokenType.CLASS, text);
+	case "trait":
+		return new Token(loc, EnumTokenType.TRAIT, text);
+	case "enum":
+		return new Token(loc, EnumTokenType.ENUM, text);
+	case "extends":
+		return new Token(loc, EnumTokenType.EXTENDS, text);
+	case "with":
+		return new Token(loc, EnumTokenType.WITH, text);
+	case "template":
+		return new Token(loc, EnumTokenType.TEMPLATE, text);
+	case "alias":
+		return new Token(loc, EnumTokenType.ALIAS, text);
+	case "using":
+		return new Token(loc, EnumTokenType.USING, text);
+	case "property":
+		return new Token(loc, EnumTokenType.PROPERTY, text);
+	case "function":
+		return new Token(loc, EnumTokenType.FUNCTION, text);
+	case "if":
+		return new Token(loc, EnumTokenType.IF, text);
+	case "else":
+		return new Token(loc, EnumTokenType.ELSE, text);
+	case "while":
+		return new Token(loc, EnumTokenType.WHILE, text);
+	case "do":
+		return new Token(loc, EnumTokenType.DO, text);
+	case "foreach":
+		return new Token(loc, EnumTokenType.FOREACH, text);
+	case "for":
+		return new Token(loc, EnumTokenType.FOR, text);
+	case "return":
+		return new Token(loc, EnumTokenType.RETURN, text);
+	case "break":
+		return new Token(loc, EnumTokenType.BREAK, text);
+	case "continue":
+		return new Token(loc, EnumTokenType.CONTINUE, text);
+	case "switch":
+		return new Token(loc, EnumTokenType.SWITCH, text);
+	case "case":
+		return new Token(loc, EnumTokenType.CASE, text);
+	case "default":
+		return new Token(loc, EnumTokenType.DEFAULT, text);
+	case "typeof":
+		return new Token(loc, EnumTokenType.TYPEOF, text);
+	case "this":
+		return new Token(loc, EnumTokenType.THIS, text);
+	case "super":
+		return new Token(loc, EnumTokenType.SUPER, text);
+	case "true":
+		return new Token(loc, EnumTokenType.TRUE, text);
+	case "false":
+		return new Token(loc, EnumTokenType.FALSE, text);
+	case "null":
+		return new Token(loc, EnumTokenType.NULL, text);
+	case "new":
+		return new Token(loc, EnumTokenType.NEW, text);
+	case "public":
+		return new Token(loc, EnumTokenType.PUBLIC, text);
+	case "private":
+		return new Token(loc, EnumTokenType.PRIVATE, text);
+	case "protected":
+		return new Token(loc, EnumTokenType.PROTECTED, text);
+	case "final":
+		return new Token(loc, EnumTokenType.FINAL, text);
+	case "const":
+		return new Token(loc, EnumTokenType.CONST, text);
+	case "static":
+		return new Token(loc, EnumTokenType.STATIC, text);
+	case "override":
+		return new Token(loc, EnumTokenType.OVERRIDE, text);
+	case "auto":
+		return new Token(loc, EnumTokenType.AUTO, text);
+	case "void":
+		return new Token(loc, EnumTokenType.VOID, text);
+	case "char":
+		return new Token(loc, EnumTokenType.CHAR, text);
+	case "uchar":
+		return new Token(loc, EnumTokenType.UCHAR, text);
+	case "byte":
+		return new Token(loc, EnumTokenType.BYTE, text);
+	case "short":
+		return new Token(loc, EnumTokenType.SHORT, text);
+	case "ushort":
+		return new Token(loc, EnumTokenType.USHORT, text);
+	case "int":
+		return new Token(loc, EnumTokenType.INT, text);
+	case "uint":
+		return new Token(loc, EnumTokenType.UINT, text);
+	case "long":
+		return new Token(loc, EnumTokenType.LONG, text);
+	case "ulong":
+		return new Token(loc, EnumTokenType.ULONG, text);
+	default:
+		return new Token(loc, EnumTokenType.IDENTIFIER, text);
+	}
 }

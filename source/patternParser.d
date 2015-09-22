@@ -26,11 +26,13 @@ class PatternParser : IVisitor
 	ShiftTable shift_table;
 	ReduceTable reduce_table;
 	LinkGenerator linkGenerator;
+	PatternNode[][string] _specializes;
 
 	public @property packageName(){ return this.package_name; }
 	public @property moduleName(){ return this.module_name; }
 	public @property shiftTable(){ return this.shift_table; }
 	public @property reduceTable(){ return this.reduce_table; }
+	public @property specializes(){ return this._specializes; }
 
 	public @property hasError() pure { return this.has_error; }
 	public void entry(ScriptNode node)
@@ -59,7 +61,7 @@ class PatternParser : IVisitor
 		}
 		this.shift_table = shiftTableGenerator.shiftTable;
 
-		writeln("--- Shift Table ---");
+		/*writeln("--- Shift Table ---");
 		{
 			size_t[] columnSpaces = [[shiftTableGenerator.shiftTable.maxIndex.to!string.length, "state".length].reduce!max + 2];
 			string[] separatorContents = ["-".repeat(columnSpaces[0]).join];
@@ -97,9 +99,9 @@ class PatternParser : IVisitor
 				writeln("|", rowContents.join("|"), "|");
 			}
 			writeln("+", separatorContents.join("+"), "+");
-		}
+		}*/
 
-		writeln("--- Reduce Table ---");
+		/*writeln("--- Reduce Table ---");
 		{
 			auto columnSpace1 = [reduceTable.maxIndex.to!string.length, "state".length].reduce!max;
 			auto columnSpace2 = [reduceTable.maxTargetNameLength, "target".length].reduce!max;
@@ -118,7 +120,7 @@ class PatternParser : IVisitor
 				writeRow(i.to!string, a.to!string);
 			}
 			writeln("+", "-".repeat(columnSpace1 + 2).join, "+", "-".repeat(columnSpace2 + 2).join, "+");
-		}
+		}*/
 	}
 
 	public override void visit(ScriptNode node)
@@ -131,6 +133,7 @@ class PatternParser : IVisitor
 		this.module_name = node.moduleName;
 		foreach(n; node.skipPatterns) n.accept(this);
 		foreach(n; node.patterns) n.accept(this);
+		this._specializes = node.specializes;
 	}
 	public override void visit(ParserNode){}
 	public override void visit(PatternNode node)

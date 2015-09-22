@@ -64,7 +64,7 @@ struct Qualifier
     public @property isAccessibleSpecified(){ return this.isRaisedBit!(Qualifiers.AccessibleMask); }
     public Qualifier combine(Qualifier q)
     {
-        auto use_qloc = this.location.line > q.location.line && this.location.col > q.location.col;
+        auto use_qloc = this.location.line > q.location.line && this.location.column > q.location.column;
         byte qval = q.q_values | this.q_values;
         if(q.isAccessibleSpecified() && this.isAccessibleSpecified())
         {
@@ -83,6 +83,22 @@ struct Qualifier
 
 // Type Nodes //
 abstract class TypeNode : NodeBase {}
+final class TypeScopeResolverNode : TypeNode
+{
+    // A.B#C...
+    TypeNode _parent, _child;
+
+    invariant { assert(_parent !is null); }
+
+    public override @property Location location(){ return this._parent.location; }
+    public @property parent(){ return this._parent; }
+    public @property child(){ return this._child; }
+    public this(TypeNode typeParent, TypeNode typeChild)
+    {
+        this._parent = typeParent;
+        this._child = typeChild;
+    }
+}
 final class TemplateInstanceTypeNode : TypeNode
 {
     Location loc;
@@ -475,6 +491,27 @@ final class AssocArrayLiteralNode : ExpressionNode
 }
 
 // Expressions //
+final class NewInstanceNode : ExpressionNode
+{
+    Location loc;
+    TypeNode _type;
+    ExpressionNode[] _params;
+
+    public override @property Location location(){ return this.loc; }
+    public @property type(){ return this._type; }
+    public @property params(){ return this._params; }
+
+    public this(Location l, TypeNode tn)
+    {
+        this.loc = l;
+        this._type = tn;
+    }
+    public this(Location l, TypeNode tn, ExpressionNode[] ps)
+    {
+        this(l, tn);
+        this._params = ps;
+    }
+}
 final class TemplateInstantiateNode : ExpressionNode
 {
     Location loc;

@@ -5,4 +5,5 @@ __dummy.html
 *.obj
 *.exe
 tpeg
+test_main
 outlog.log

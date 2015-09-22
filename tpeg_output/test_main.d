@@ -1,6 +1,7 @@
 module com.cterm2.tpeg.sample.calc.main;
 
 import std.stdio, std.array, std.algorithm, std.datetime;
+import std.conv;
 //import Lexer = com.cterm2.tpeg.sample.calc.lexer;
 //import Parser = com.cterm2.tpeg.sample.calc.parser;
 import Lexer = com.cterm2.ml.lexer;
@@ -34,7 +35,7 @@ void main()
             if(parseRes.failed)
             {
                 writeln("Failed to parsing(input \"quit\" or \"q\" to exit) at ",
-                    parseRes.iterError.current.location, ": type=", parseRes.iterError.current.type);
+                    parseRes.iterError.current.location, ": type=", parseRes.iterError.current.type, ", text=", parseRes.iterError.current.text);
             }
             // writeln("result: ", parseRes);
         }
