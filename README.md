@@ -7,8 +7,11 @@ Tokenized-PEG Parser Generator Tool
 /calc.tpegを参照してください。
 
 ## How to build
-1. ready dub and dmd(v2.067 or later)
+1. ready dub and dmd(v2.068 or later)
 2. clone this repository(git clone https://github.com/Pctg-x8/tpeg)
 
 then
->$ dub
+>% dub
+
+with samples:
+>% dub -- [sampleInput.tpeg] [-v(for verbose)]
