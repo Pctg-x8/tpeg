@@ -21,7 +21,7 @@ int main(string[] args)
 	if(args.length <= 1)
 	{
 		writeln("Tokenized-PEG Parser Generator version indev.");
-		writeln("Usage: tpeg [-v] [-o(OutputDir)] [InputFile]");
+		writeln("Usage: tpeg [InputFile] [-v] [-o(OutputDir)]");
 		writeln("  (-v for verbose process)");
 		writeln("  (-o for specify output directory(default is \"tpeg_output\"))");
 		return ErrorState.NoArg;
